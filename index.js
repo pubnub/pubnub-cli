@@ -365,8 +365,13 @@ cli.main(function(args, options) {
 
             cli.info('Reading block.json from ' + block_file);
             fs.readJson(block_file, function(err, data){
+
                 if(err) {
-                    cb('No block.json found. Please run init or specify a file with -f.');
+                    if(options.key && options.block) {
+                        cb(null)
+                    } else {
+                        cb('No block.json found. Please run init or specify a file with -f.');   
+                    }
                 } else {
 
                     if(data.name) {
