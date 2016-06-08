@@ -173,8 +173,6 @@ cli.main(function(args, options) {
 
     var block_create = function(key, cb) {
 
-        console.log(block, block_local)
-
         updateBlock(block_local, true, function(block) {
 
             block.key_id = key.id;
@@ -773,8 +771,6 @@ cli.main(function(args, options) {
         self.event_handler_push = function(cb) {
 
             cli.debug('event_handler_push');
-
-            console.log(self.block_local)
 
             var update = function(data, done) {
 
