@@ -7,7 +7,7 @@ var PUBNUB = require('pubnub');
 require('shelljs/global');
 
 var api = require('./lib/pubnub-api')({
-    debug: true
+    debug: false
 });
 
 cli.parse({
@@ -235,17 +235,21 @@ cli.main(function(args, options) {
             if(self.key) {
                 opts['k'] = self.key.id;
             }
-            if(options.file) {
+            if(options.file && options.file !== '/') {
                 opts['f'] = options.file;
             }
 
-            var hint = 'node index.js ' + args;
-            for(var key in opts) {
-                hint = hint + ' -' + key + ' ' + opts[key];
-            }
+            if(opts.length) {
 
-            cli.info('Use this handy command next time:');
-            cli.info(hint);
+                var hint = 'node index.js ' + args;
+                for(var key in opts) {
+                    hint = hint + ' -' + key + ' ' + opts[key];
+                }
+
+                cli.info('Use this handy command next time:');
+                cli.info(hint);
+                   
+            }
 
         }
 
@@ -254,6 +258,7 @@ cli.main(function(args, options) {
             cli.debug('session_file_get');
 
             // see if session file exists
+            cli.info('Reading session from ' + session_file);
             fs.readJson(session_file, function(err, session) {
 
                 if(err) {
@@ -275,6 +280,7 @@ cli.main(function(args, options) {
                 cli.error('You are not logged in.');
             } else {
                 
+                cli.info('Deleting session from ' + session_file);
                 fs.unlink(session_file, function(err) {
                     if(err) {
                         cb(err);
@@ -303,6 +309,7 @@ cli.main(function(args, options) {
                         cb(err)
                     } else {
 
+                        cli.info('Writing session to ' + session_file);
                         fs.outputJson(session_file, body.result, {spaces: 4}, function (err) {
                             self.session = body.result;
                             cb(err);
@@ -314,9 +321,9 @@ cli.main(function(args, options) {
 
             };
 
-            if(!self.session || options.login) {
+            if(!self.session) {
 
-                if(!options.login) {
+                if(cli.command != "login") {
                     cli.info('No session found, please log in.');   
                 }
                 
@@ -356,6 +363,7 @@ cli.main(function(args, options) {
             
             cli.debug('block_read');
 
+            cli.info('Reading block.json from ' + block_file);
             fs.readJson(block_file, function(err, data){
                 if(err) {
                     cb('No block.json found. Please run init or specify a file with -f.');
@@ -374,11 +382,14 @@ cli.main(function(args, options) {
             
             cli.debug('block_file_create');
 
+            cli.info('Checking for block.json in ' + block_file);
             fs.readJson(block_file, function(err, data) {
                 
                 if(data) {
                     cb('block.json already exists, refusing to overwrite.');
                 } else {
+
+                    cli.info('Writing block.json to ' + block_file);
                     fs.outputJson(block_file, {}, {spaces: 4}, cb);
                 }
 
@@ -541,8 +552,7 @@ cli.main(function(args, options) {
             self.block_local.name = self.block.name;
             self.block_local.description = self.block.description;
 
-            cli.info('Writing to block.json');
-            
+            cli.info('Writing block.json to ' + block_file);
             fs.outputJson(block_file, self.block_local, {spaces: 4}, cb);
 
         };
@@ -677,7 +687,10 @@ cli.main(function(args, options) {
             async.each(self.block.event_handlers, function(eh, cb) {
 
                 eh.file = eh.event + '/' + eh.name + '.js';
-                fs.outputFile(working_dir + options.file + eh.file, eh.code, function (err) {
+                full_path = working_dir + options.file + eh.file;
+
+                cli.info('Writing event handler to ' + full_path);
+                fs.outputFile(full_path, eh.code, function (err) {
 
                     cli.debug('writing event_handler');
 
@@ -703,7 +716,7 @@ cli.main(function(args, options) {
 
             }, function(err) {
                 
-                cli.debug('writing event handlers to block.json');
+                cli.debug('Writing event handlers to block.json in' + block_file);
                 fs.outputJson(block_file, self.block_local, {spaces: 4}, cb);
 
             });
@@ -715,8 +728,12 @@ cli.main(function(args, options) {
             cli.debug('ensuring block in block.json is complete');
 
             updateBlock(self.block_local, false, function(data) {
+
                 self.block_local = mergeBlock(self.block_local, data);
+
+                cli.debug('Writing block.json in' + block_file);
                 fs.outputJson(block_file, self.block_local, {spaces: 4}, cb);
+
             });
 
         };
@@ -734,6 +751,8 @@ cli.main(function(args, options) {
             }, function(err, results){
 
                 self.block_local.event_handlers = results;
+
+                cli.debug('Writing block.json in' + block_file);
                 fs.outputJson(block_file, self.block_local, {spaces: 4}, cb);
 
             });
@@ -780,7 +799,10 @@ cli.main(function(args, options) {
 
                 if(eh.file) {
 
-                    fs.readFile(working_dir + options.file + eh.file, 'utf8', function (err,data) {
+                    full_path = working_dir + options.file + eh.file;
+
+                    cli.info('Uploading event handler from ' + full_path);
+                    fs.readFile(full_path, 'utf8', function (err,data) {
 
                         if(err) {
                             return holla(err.message);
@@ -831,43 +853,41 @@ cli.main(function(args, options) {
         };
 
 
-        if(args.length) {
-
-            for(var cmd in routes[args].functions) {
-                tasks.push(self[routes[args].functions[cmd]]);
-            }
-
-            async.series(tasks, function(err, results) {
-
-                if(err) {
-                    if(err.code) {
-                        cli.error(err.code + ' - ' + (err.error || 'There was a problem with that request'));   
-                    } else {
-                        cli.error(err);
-                    }
-                } else {
-                    
-                    cli.ok('---------------------------------------');
-                    if(routes[args].success) {
-                        cli.ok(routes[args].success);
-                    }
-                    cli.ok('Deluxe!');
-                    cli.ok('---------------------------------------');
-                    
-                    explain();
-
-                    process.exit(0);
-                }
-            });
-
-        } else {
-            cli.info('Please supply an argument. Try running index.js --help');
+        for(var cmd in routes[cli.command].functions) {
+            tasks.push(self[routes[cli.command].functions[cmd]]);
         }
+
+        async.series(tasks, function(err, results) {
+
+            if(err) {
+                if(err.code) {
+                    cli.error(err.code + ' - ' + (err.error || 'There was a problem with that request'));   
+                } else {
+                    cli.error(err);
+                }
+            } else {
+                
+                cli.ok('---------------------------------------');
+                if(routes[cli.command].success) {
+                    cli.ok(routes[cli.command].success);
+                }
+                cli.ok('Deluxe!');
+                cli.ok('---------------------------------------');
+                
+                explain();
+
+                process.exit(0);
+            }
+        });
 
         return self;
 
     };
 
-    init();
+    if(!cli.command) {
+        return cli.error('Please supply a command. Try running pubnub-cli -h for more info');
+    }  else {
+        init();
+    }
 
 });
