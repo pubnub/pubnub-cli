@@ -1,0 +1,16 @@
+{
+    "_key_id": 145183,
+    "_id": 853,
+    "name": "Email Sendgrid Block",
+    "description": "Email Sendgrid Block",
+    "event_handlers": [
+        {
+            "_id": 888,
+            "name": "send email",
+            "event": "js-after-publish",
+            "channels": "email-sendgrid-channel",
+            "file": "js-after-publish/send-email.js",
+            "output": "somethign"
+        }
+    ]
+}

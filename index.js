@@ -4,6 +4,8 @@ var os = require('os');
 var async = require('async');
 var fs = require('fs-extra');
 var PUBNUB = require('pubnub');
+var slug = require('slug');
+
 require('shelljs/global');
 
 var api = require('./lib/pubnub-api')({
@@ -103,7 +105,7 @@ cli.main(function(args, options) {
         if(qs.length) {
 
             if(!revise) {
-                cli.info('Event handler ' + (event_handler.name || event_handler.event || 'Unknown') + ' is missing some information.');
+                cli.error('Event handler ' + (event_handler.name || event_handler.event || 'Unknown') + ' is missing some information.');
             }
 
             inquirer.prompt(qs).then(cb);            
@@ -153,7 +155,7 @@ cli.main(function(args, options) {
         if(qs.length) {
 
             if(!revise) {
-                cli.info('Block.json is missing some information.');
+                cli.error('Block.json is missing some information.');
             }
 
             inquirer.prompt(qs).then(cb);            
@@ -239,15 +241,15 @@ cli.main(function(args, options) {
                 opts['f'] = options.file;
             }
 
-            if(opts.length) {
+            if(Object.keys(opts).length) {
 
-                var hint = 'node index.js ' + args;
+                var hint = 'node index.js ' + cli.command;
                 for(var key in opts) {
                     hint = hint + ' -' + key + ' ' + opts[key];
                 }
 
-                cli.info('Use this handy command next time:');
-                cli.info(hint);
+                cli.ok('Use this handy command next time:');
+                cli.ok(hint);
                    
             }
 
@@ -324,7 +326,7 @@ cli.main(function(args, options) {
             if(!self.session) {
 
                 if(cli.command != "login") {
-                    cli.info('No session found, please log in.');   
+                    cli.error('No session found, please log in.');   
                 }
                 
                 // no file found, prompt for user and pass
@@ -337,7 +339,7 @@ cli.main(function(args, options) {
                 // we have the file
                 if( self.session.expires > (new Date().getTime() / 1000)) {
 
-                    cli.info('Working as ' + self.session.user.email);
+                    cli.ok('Working as ' + self.session.user.email);
 
                     // token is not expired, tell api to restore
                     restore(self.session, cb);
@@ -345,7 +347,7 @@ cli.main(function(args, options) {
                 } else {
                 
                     // token expired, need to login again
-                    cli.info('Session has expired, please login.');
+                    cli.error('Session has expired, please login.');
 
                     // supply email, prompt password
                     inquirer.prompt([user_questions.password]).then(function (answers) {
@@ -369,7 +371,10 @@ cli.main(function(args, options) {
                     cb('No block.json found. Please run init or specify a file with -f.');
                 } else {
 
-                    cli.info('Working on block ' + data.name);
+                    if(data.name) {
+                        cli.ok('Working on block ' + data.name);
+                    }
+
                     self.block_local = data;
                     cb();
 
@@ -443,6 +448,8 @@ cli.main(function(args, options) {
 
                     }
 
+                    cli.ok('Which app are you working on?');
+
                     inquirer.prompt([{
                         type: 'list',
                         name: 'key',
@@ -513,6 +520,8 @@ cli.main(function(args, options) {
                             }
                                
                         }
+
+                        cli.ok('Which block are you working on?');
 
                         inquirer.prompt([{
                             type: 'list',
@@ -663,6 +672,8 @@ cli.main(function(args, options) {
 
                 }
 
+                cli.ok('Which event handler?');
+
                 inquirer.prompt([{
                     type: 'list',
                     name: 'event_handler',
@@ -686,7 +697,7 @@ cli.main(function(args, options) {
 
             async.each(self.block.event_handlers, function(eh, cb) {
 
-                eh.file = eh.event + '/' + eh.name + '.js';
+                eh.file = eh.event + '/' + slug(eh.name) + '.js';
                 full_path = working_dir + options.file + eh.file;
 
                 cli.info('Writing event handler to ' + full_path);
