@@ -6,27 +6,17 @@ var fs = require('fs-extra');
 var PUBNUB = require('pubnub');
 require('shelljs/global');
 
-var api = require('../api')({
+var api = require('./lib/pubnub-api')({
     debug: true
 });
 
 cli.parse({
-    
-    login: [false, 'Log Into PubNub'],
-    logout: [false, 'Logout of PubNub'],
-    
-    start: [false, 'Start a Block'],
-    stop: [false, 'Stop a Block'],
-
-    init: [false, 'Create a Block in current directory'],
-    push: [false, 'Push directory as Block.'],
-    pull: [false, 'Pull Block into directory'],
 
     block: ['b', 'Specify a Block ID', 'int'],
     key: ['k', 'Specify a Subscribe Key ID', 'int'],
     file: ['f', 'Specify a block file', 'path']
 
-});
+}, ['login', 'logout', 'start', 'stop', 'init', 'push', 'pull']);
 
 
 var working_dir = String(pwd());
