@@ -1,0 +1,21 @@
+{
+  "name": "pubnub-cli",
+  "version": "1.0.0",
+  "description": "Interact with PubNub through an interactive CLI",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ian Jennings",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^2.0.0-rc.5",
+    "cli": "^0.11.2",
+    "fs-extra": "^0.30.0",
+    "inquirer": "^1.0.3",
+    "jsonfile": "^2.3.1",
+    "pubnub": "^3.14.5",
+    "request": "^2.72.0",
+    "shelljs": "^0.7.0"
+  }
+}
