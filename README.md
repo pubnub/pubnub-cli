@@ -5,57 +5,47 @@
 - [Install](#install)
 - [Help](#help)
 - [Usage](#usage)
-- [Debug](#debug)
 - [Login](#login)
 - [Init](#init)
 - [Pull](#pull)
 - [Push](#push)
+- [Start](#start)
 - [TODO](#todo)
 
 <!-- /MarkdownTOC -->
+
 
 <a name="install"></a>
 ## Install
 
 ```zsh
-git clone git@github.com:pubnub/blocks-catalog.git
-cd blocks-catalog/api
-npm install
-../cli
-npm install
+npm install -g pubnub-cli
 ```
 
 <a name="help"></a>
 ## Help
 
 ```
-node index.js -h
+node pubnub-cli -h
 ```
 
 <a name="usage"></a>
 ## Usage
 
-```bash
+```zsh
 Usage:
-  index.js [OPTIONS] [ARGS]
+  pubnub-cli [OPTIONS] <command> [ARGS]
 
 Options:
-      --login            Log Into PubNub
-      --logout           Logout of PubNub
-      --init             Create a Block in current directory
-      --push             Push directory as Block.
   -b, --block NUMBER     Specify a Block ID
   -k, --key NUMBER       Specify a Subscribe Key ID
-  -e, --handler NUMBER   Specify an Event Handler ID
   -f, --file PATH        Specify a block file
       --debug            Show debug information
   -h, --help             Display help and usage details
+
+Commands:
+  init, login, logout, pull, push, start, stop
 ```
-
-<a name="debug"></a>
-## Debug
-
-For now I recommend always running commands with ```--debug```.
 
 <a name="login"></a>
 ## Login
@@ -65,21 +55,22 @@ Authorizes this computer with PubNub API.
 Input:
 
 ```zsh
-node index.js login --debug
+pubnub-cli login
 ```
 
 Output:
 
 ```zsh
-DEBUG: running these controllers
-DEBUG: settings,session
-DEBUG: settings
-DEBUG: session
-INFO: No session found, please log in.
-? PubNub Email: ian@meetjennings.com
+pubnub-cli login
+INFO: Reading session from /Users/ian/.pubnub-cli
+? PubNub Email: ian@pubnub.com
 ? PubNub Password: *************
 Logging In... Done!
+INFO: Writing session to /Users/ian/.pubnub-cli
+OK: ---------------------------------------
+OK: Logged In!
 OK: Deluxe!
+OK: ---------------------------------------
 ```
 
 Creates a file ```~/.pubnub-cli``` with PubNub session properties:
@@ -113,26 +104,29 @@ Note the ```-f``` specifies the directory of the future ```block.json``` file. S
 Input:
 
 ```zsh
-node index.js init -f /block-template --debug
+pubnub-cli init
 ```
 
 Output:
 
 ```zsh
-DEBUG: running these controllers
-DEBUG: settings,session,block_file_create,block_read,key,block,block_write,event_handler_write
-DEBUG: settings
-DEBUG: block_file_create
-DEBUG: session
-INFO: Working as ian@meetjennings.com
-DEBUG: block_read
-DEBUG: key
+INFO: Reading session from /Users/ian/.pubnub-cli
+OK: Working as ian@meetjennings.com
+INFO: Checking for block.json in /Users/ian/Development/new-project/block.json
+INFO: Writing block.json to /Users/ian/Development/new-project/block.json
+INFO: Reading block.json from /Users/ian/Development/new-project/block.json
+OK: Which app are you working on?
 ? Select a key eon-demos
-DEBUG: block
-? Select a block name this block
-DEBUG: block_write
-DEBUG: event_handler_write
+OK: Which block are you working on?
+? Select a block Email Sendgrid Block
+INFO: Writing block.json to /Users/ian/Development/new-project/block.json
+INFO: Writing event handler to /Users/ian/Development/new-project/js-after-publish/send-email.js
+OK: ---------------------------------------
+OK: New block.json written to disk.
 OK: Deluxe!
+OK: ---------------------------------------
+OK: Use this handy command next time:
+OK: node pubnub-cli init -b 853 -k 145183
 ```
 
 <a name="pull"></a>
@@ -143,23 +137,24 @@ Pulls block information from server and writes to ```block.json```.
 Input
 
 ```zsh
-node index.js pull -f /block-template --debug
+pubnub-cli pull
 ```
 
 Output
 
 ```zsh
-DEBUG: running these controllers
-DEBUG: settings,session,block_read,key,block,block_write,block_read,event_handler_write
-DEBUG: settings
-DEBUG: session
-INFO: Working as ian@meetjennings.com
-DEBUG: block_read
-DEBUG: key
-DEBUG: block
-DEBUG: block_write
-DEBUG: event_handler_write
+INFO: Reading session from /Users/ian/.pubnub-cli
+OK: Working as ian@meetjennings.com
+INFO: Reading block.json from /Users/ian/Development/new-project/block.json
+OK: Working on block Email Sendgrid Block
+INFO: Writing block.json to /Users/ian/Development/new-project/block.json
+INFO: Writing event handler to /Users/ian/Development/new-project/js-after-publish/send-email.js
+OK: ---------------------------------------
+OK: Local block.json updated with remote data.
 OK: Deluxe!
+OK: ---------------------------------------
+OK: Use this handy command next time:
+OK: node pubnub-cli pull -b 853 -k 145183
 ```
 
 Block.json looks like:
@@ -175,31 +170,19 @@ Block.json looks like:
             "_id": 69,
             "name": "Wohoo!",
             "event": "js-before-publish",
-            "channels": "adfasdf"
+            "channels": "input"
         },
         {
             "_id": 107,
             "name": "kjklhlkjh",
             "event": "js-before-publish",
-            "channels": "ljlkjl;j"
-        },
-        {
-            "_id": 118,
-            "name": "safasdf",
-            "event": "js-after-publish",
-            "channels": "asdfasdf"
-        },
-        {
-            "_id": 307,
-            "name": "new eh",
-            "event": "js-before-publish",
-            "channels": "asdf"
+            "channels": "input"
         }
     ]
 }
 ```
 
-The properties ```_key_id``` and ```_id``` represent the key id and block id respectively. These should not be modified and will eventually be hidden from the user.
+The properties ```_key_id``` and ```_id``` represent the key id and block id respectively. These should not be modified.
 
 <a name="push"></a>
 ## Push
@@ -209,25 +192,23 @@ Updates server with information provided in block.json. Upload code by specifyin
 Input
 
 ```zsh
-node index.js --debug push -f /block-template
+pubnub-cli push
 ```
 
 Output
 
 ```zsh
-DEBUG: running these controllers
-DEBUG: settings,session,block_read,key,block,block_write,block_read,block_push,event_handler_push
-DEBUG: settings
-DEBUG: session
-INFO: Working as ian@meetjennings.com
-DEBUG: block_read
-DEBUG: key
-DEBUG: block
-DEBUG: block_write
-DEBUG: block_push
-DEBUG: event_handler_push
-OK: Block Pushed
+INFO: Reading session from /Users/ian/.pubnub-cli
+OK: Working as ian@meetjennings.com
+INFO: Reading block.json from /Users/ian/Development/new-project/block.json
+OK: Working on block Email Sendgrid Block
+INFO: Uploading event handler from /Users/ian/Development/new-project/js-after-publish/send-email.js
+OK: ---------------------------------------
+OK: Block pushed
 OK: Deluxe!
+OK: ---------------------------------------
+OK: Use this handy command next time:
+OK: node pubnub-cli push -b 853 -k 145183
 ```
 
 Sample block.json for uploading event handlers directly:
@@ -241,34 +222,82 @@ Sample block.json for uploading event handlers directly:
     "event_handlers": [
         {
             "_id": 69,
-            "name": "Wohoo!",
+            "name": "a handler",
             "event": "js-before-publish",
-            "channels": "adfasdf",
+            "channels": "input",
             "file": "/after-presence/sample_handler.js"
         },
         {
             "_id": 107,
-            "name": "kjklhlkjh",
+            "name": "a handler",
             "event": "js-before-publish",
-            "channels": "ljlkjl;j",
+            "channels": "input",
             "file": "/before-publish/sample_handler.js"
         },
         {
             "_id": 118,
-            "name": "safasdf",
+            "name": "a handler",
             "event": "js-after-publish",
-            "channels": "asdfasdf",
+            "channels": "input",
             "file": "/after-publish/sample_handler.js"
         }
     ]
 }
 ```
 
+<a name="start"></a>
+## Start
+
+Starts running a block.
+
+Input
+
+``zsh
+pubnub-cli start
+```
+
+Output
+
+```zsh
+INFO: Reading session from /Users/ian/.pubnub-cli
+OK: Working as ian@meetjennings.com
+INFO: Reading block.json from /Users/ian/Development/new-project/block.json
+OK: Working on block Email Sendgrid Block
+OK: Sending start command
+INFO: Subscribing to blocks status channel...
+Starting Block...
+OK: ---------------------------------------
+OK: Block started
+OK: Deluxe!
+OK: ---------------------------------------
+```
+
+## Stop
+
+Stops a running block.
+
+Input
+
+``zsh
+pubnub-cli stop
+```
+
+Output
+
+```zsh
+NFO: Reading session from /Users/ian/.pubnub-cli
+OK: Working as ian@meetjennings.com
+INFO: Reading block.json from /Users/ian/Development/new-project/block.json
+OK: Working on block Email Sendgrid Block
+OK: ---------------------------------------
+OK: Block stopped
+OK: Deluxe!
+OK: ---------------------------------------
+```
+
 <a name="todo"></a>
 ## TODO
 
-- Clone block into directories
 - Create event handler through CLI
-- Bring back start / stop block
-- Bring back update event handler and block through CLI
+- Update event handler and block through CLI
 

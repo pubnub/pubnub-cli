@@ -241,7 +241,7 @@ cli.main(function(args, options) {
 
             if(Object.keys(opts).length) {
 
-                var hint = 'node index.js ' + cli.command;
+                var hint = 'node pubnub-cli ' + cli.command;
                 for(var key in opts) {
                     hint = hint + ' -' + key + ' ' + opts[key];
                 }
@@ -584,7 +584,7 @@ cli.main(function(args, options) {
 
             api.request('post', ['api', 'v1', 'blocks', 'key', self.key.id, 'block', self.block_local._id, 'start'], {}, function(err, data) {
 
-                cli.ok('Block Started');
+                cli.ok('Sending Start Command');
 
                 var pubnub = PUBNUB.init({
                     subscribe_key: self.key.subscribe_key,
