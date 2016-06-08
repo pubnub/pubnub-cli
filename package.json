@@ -1,13 +1,17 @@
 {
   "name": "pubnub-cli",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Interact with PubNub through an interactive CLI",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "patch-release": "npm version patch && npm publish && git push --follow-tags"
   },
   "author": "Ian Jennings",
-  "license": "ISC",
+  "license": "MIT",
+  "bin": {
+    "pubnub-cli": "bin/cli.js"
+  },
   "dependencies": {
     "async": "^2.0.0-rc.5",
     "cli": "^0.11.2",
