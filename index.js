@@ -5,18 +5,16 @@ var async = require('async');
 var fs = require('fs-extra');
 var PUBNUB = require('pubnub');
 var slug = require('slug');
+var envs = require('./envs')
 
 require('shelljs/global');
-
-var api = require('./lib/pubnub-api')({
-    debug: false
-});
 
 cli.parse({
 
     block: ['b', 'Specify a Block ID', 'int'],
     key: ['k', 'Specify a Subscribe Key ID', 'int'],
-    file: ['f', 'Specify a block file', 'path']
+    file: ['f', 'Specify a block file', 'path'],
+    env: ['e', 'Specify an environment [bronze, silver, gold]', 'string']
 
 }, ['login', 'logout', 'start', 'stop', 'init', 'push', 'pull']);
 
@@ -30,6 +28,7 @@ cli.main(function(args, options) {
     var tasks = [];
     var block_file = working_dir + options.file + 'block.json';
     var session_file = os.homedir() + '/.pubnub-cli';
+
     var user_questions = {
         email: {
             name: 'email',
@@ -52,170 +51,6 @@ cli.main(function(args, options) {
         }
     };
 
-    var mergeEventHandler = function(input, data) {
-
-        input._id = data.id || input._id;
-        input.name = data.name || input.name;
-        input.event = data.event || input.event;
-        input.channels = data.channels || input.channels;
-        input.file = data.file || input.file;
-        input.output = data.output || input.output;
-
-        return input;
-
-    };
-
-    var updateEventHandler = function(event_handler, revise, cb) {
-
-        var o = {
-            name: {
-                name: 'name',
-                message: 'Name:',
-                type: 'input',
-                default: event_handler.name
-            },
-            event: {
-                name: 'event',
-                message: 'Event:',
-                type: 'list',
-                default: event_handler.event,
-                choices: ['js-after-publish', 'js-before-publish', 'js-after-presence']
-            },
-            channels: {
-                name: 'channels',
-                message: 'PubNub Channels:',
-                type: 'input',
-                default: event_handler.channels
-            },
-            output: {
-                name: 'output',
-                message: 'Output:',
-                type: 'input',
-                default: event_handler.output
-            }
-        };
-
-        var qs = [];
-        for(var prop in o) {
-            if(revise || !event_handler.hasOwnProperty(prop)){
-                qs.push(o[prop]);
-            }
-        }
-
-        if(qs.length) {
-
-            if(!revise) {
-                cli.error('Event handler ' + (event_handler.name || event_handler.event || 'Unknown') + ' is missing some information.');
-            }
-
-            inquirer.prompt(qs).then(cb);            
-
-        } else {
-            cb(event_handler);
-        }
-
-
-    }
-
-    var mergeBlock = function(input, data) {
-
-        input._id = data.id || input._id;
-        input._key_id = data.key_id || input._key_id;
-        input.name = data.name || input.name;
-        input.description = data.name || input.description;
-
-        return input;
-
-    };
-
-    var updateBlock = function(block, revise, cb) {
-
-        var o = {
-            name: {
-                name: 'name',
-                message: 'Name:',
-                type: 'input',
-                default: block.name
-            },
-            description: {
-                name: 'description',
-                message: 'Description:',
-                type: 'input',
-                default: block.description
-            }
-        };
-
-        var qs = [];
-        for(var prop in o) {
-            if(revise || !block.hasOwnProperty(prop)){
-                qs.push(o[prop]);
-            }
-        }
-
-        if(qs.length) {
-
-            if(!revise) {
-                cli.error('Block.json is missing some information.');
-            }
-
-            inquirer.prompt(qs).then(cb);            
-
-        } else {
-            cb(block);
-        }
-
-    }
-
-    var restore = function(session, cb) {
-        api.session = session;
-        cb(null, session);
-    };
-
-    var block_create = function(key, cb) {
-
-        updateBlock(block_local, true, function(block) {
-
-            block.key_id = key.id;
-            block.subscribe_key = key.subscribe_key;
-            block.publish_key = key.publish_key;
-
-            api.request('post', ['api', 'v1', 'blocks', 'key', key.id, 'block'], {
-                form: block
-            }, function(err, data) {
-
-                cli.ok('Block Created');
-                cb(err ? err.message : null, data.payload);
-
-            });
-
-        });
-
-    };
-
-    var event_handler_create = function(block){
-
-        updateEventHandler({}, true, function(eh){
-
-            eh.block_id = block.id;
-            eh.key_id = block.key_id;
-
-            eh.type = 'js';
-            eh.code = '// code goes here'; // this should be able to be supplied through -f
-
-            api.request('post', ['api', 'v1', 'blocks', 'key', block.key_id, 'event_handler'], {
-                form: eh
-            }, function(err, data) {
-
-                cli.ok('Event Handler Created');
-                cb(err ? err.message : null);
-
-            });
-
-        });
-        
-            
-    }
-
     var init = function() {
 
         var self = this;
@@ -225,6 +60,186 @@ cli.main(function(args, options) {
         self.block = false;
         self.key = false;
         self.event_handler = false;
+
+        self.block_file_required = false;
+
+        self.env = envs[options.env] || envs.gold;
+
+        var api = require('./lib/pubnub-api')({
+            debug: true,
+            endpoint: self.env.host
+        });
+
+        if(!self.env) {
+            return cli.fatal('Invalid environment');
+        } else {
+            cli.ok('Working with ' + options.env + ' environment at ' + self.env.host);
+        }
+
+
+        var mergeEventHandler = function(input, data) {
+
+            input._id = data.id || input._id;
+            input.name = data.name || input.name;
+            input.event = data.event || input.event;
+            input.channels = data.channels || input.channels;
+            input.file = data.file || input.file;
+            input.output = data.output || input.output;
+
+            return input;
+
+        };
+
+        var updateEventHandler = function(event_handler, revise, cb) {
+
+            var o = {
+                name: {
+                    name: 'name',
+                    message: 'Name:',
+                    type: 'input',
+                    default: event_handler.name
+                },
+                event: {
+                    name: 'event',
+                    message: 'Event:',
+                    type: 'list',
+                    default: event_handler.event,
+                    choices: ['js-after-publish', 'js-before-publish', 'js-after-presence']
+                },
+                channels: {
+                    name: 'channels',
+                    message: 'PubNub Channels:',
+                    type: 'input',
+                    default: event_handler.channels
+                },
+                output: {
+                    name: 'output',
+                    message: 'Output:',
+                    type: 'input',
+                    default: event_handler.output
+                }
+            };
+
+            var qs = [];
+            for(var prop in o) {
+                if(revise || !event_handler.hasOwnProperty(prop)){
+                    qs.push(o[prop]);
+                }
+            }
+
+            if(qs.length) {
+
+                if(!revise) {
+                    cli.error('Event handler ' + (event_handler.name || event_handler.event || 'Unknown') + ' is missing some information.');
+                }
+
+                inquirer.prompt(qs).then(cb);            
+
+            } else {
+                cb(event_handler);
+            }
+
+
+        }
+
+        var mergeBlock = function(input, data) {
+
+            input._id = data.id || input._id;
+            input._key_id = data.key_id || input._key_id;
+            input.name = data.name || input.name;
+            input.description = data.name || input.description;
+
+            return input;
+
+        };
+
+        var updateBlock = function(block, revise, cb) {
+
+            var o = {
+                name: {
+                    name: 'name',
+                    message: 'Name:',
+                    type: 'input',
+                    default: block.name
+                },
+                description: {
+                    name: 'description',
+                    message: 'Description:',
+                    type: 'input',
+                    default: block.description
+                }
+            };
+
+            var qs = [];
+            for(var prop in o) {
+                if(revise || !block.hasOwnProperty(prop)){
+                    qs.push(o[prop]);
+                }
+            }
+
+            if(qs.length) {
+
+                if(!revise) {
+                    cli.error('Block.json is missing some information.');
+                }
+
+                inquirer.prompt(qs).then(cb);            
+
+            } else {
+                cb(block);
+            }
+
+        }
+
+        var restore = function(session, cb) {
+            api.session = session;
+            cb(null, session);
+        };
+
+        var block_create = function(key, cb) {
+
+            updateBlock(block_local, true, function(block) {
+
+                block.key_id = key.id;
+                block.subscribe_key = key.subscribe_key;
+                block.publish_key = key.publish_key;
+
+                api.request('post', ['api', 'v1', 'blocks', 'key', key.id, 'block'], {
+                    form: block
+                }, function(err, data) {
+
+                    cli.ok('Block Created');
+                    cb(err ? err.message : null, data.payload);
+
+                });
+
+            });
+
+        };
+
+        var event_handler_create = function(block){
+
+            updateEventHandler({}, true, function(eh){
+
+                eh.block_id = block.id;
+                eh.key_id = block.key_id;
+
+                eh.type = 'js';
+                eh.code = '// code goes here'; // this should be able to be supplied through -f
+
+                api.request('post', ['api', 'v1', 'blocks', 'key', block.key_id, 'event_handler'], {
+                    form: eh
+                }, function(err, data) {
+
+                    cli.ok('Event Handler Created');
+                    cb(err ? err.message : null);
+
+                });
+
+            });
+            
+                
+        }
 
         var explain = function() {
             
@@ -359,6 +374,11 @@ cli.main(function(args, options) {
 
         };
 
+        self.require_init = function(cb) {
+            self.block_file_required = true;
+            cb();
+        };
+
         self.block_read = function(cb) {
             
             cli.debug('block_read');
@@ -367,10 +387,11 @@ cli.main(function(args, options) {
             fs.readJson(block_file, function(err, data){
 
                 if(err) {
-                    if(options.key && options.block) {
-                        cb(null)
+
+                    if(self.block_file_required) {
+                        cli.info('No block.json found. Please run pubnub-cli init.');
                     } else {
-                        cb('No block.json found. Please run init or specify a file with -f.');   
+                        cb(null);
                     }
                 } else {
 
@@ -409,7 +430,7 @@ cli.main(function(args, options) {
 
             cli.debug('key_get');
 
-            var given_key = options.key || self.block_local._key_id;
+            var given_key = options.key || self.block.key_id || self.block_local._key_id;
 
             api.request('get', ['api', 'apps'], {
                 qs: {
@@ -473,7 +494,7 @@ cli.main(function(args, options) {
             
             cli.debug('block');
             
-            var given_block = options.block || self.block_local._id;
+            var given_block = options.block || self.block.key_id || self.block_local._id;
 
             api.request('get', ['api', 'v1', 'blocks', 'key', self.key.id, 'block'], {}, function(err, result) {
 
@@ -573,7 +594,7 @@ cli.main(function(args, options) {
 
             cli.debug('block_push');
 
-            api.request('put', ['api', 'v1', 'blocks', 'key', self.block_local._key_id, 'block', self.block_local._id], {
+            api.request('put', ['api', 'v1', 'blocks', 'key', self.block.key_id, 'block', self.block.id], {
                 form: self.block_local
             }, function(err, data) {
 
@@ -587,17 +608,17 @@ cli.main(function(args, options) {
             
             cli.debug('block_start');
 
-            api.request('post', ['api', 'v1', 'blocks', 'key', self.key.id, 'block', self.block_local._id, 'start'], {}, function(err, data) {
+            api.request('post', ['api', 'v1', 'blocks', 'key', self.key.id, 'block', self.block.id, 'start'], {}, function(err, data) {
 
                 cli.ok('Sending Start Command');
 
                 var pubnub = PUBNUB.init({
                     subscribe_key: self.key.subscribe_key,
                     publish_key: self.key.publish_key,
-                    origin: 'balancer1.gold.aws-pdx-3.ps.pn'
+                    origin: self.env.origin
                 });
 
-                var chan = 'blocks-state-' + self.key.properties.realtime_analytics_channel + '.' + self.block_local._id;
+                var chan = 'blocks-state-' + self.key.properties.realtime_analytics_channel + '.' + self.block.id;
                 var pending = false;
 
                 cli.info('Subscribing to blocks status channel...');
@@ -634,7 +655,7 @@ cli.main(function(args, options) {
 
             cli.debug('block_stop');
 
-            api.request('post', ['api', 'v1', 'blocks', 'key', self.key.id, 'block', self.block_local._id, 'stop'], {}, function(err, data) {
+            api.request('post', ['api', 'v1', 'blocks', 'key', self.key.id, 'block', self.block.id, 'stop'], {}, function(err, data) {
                 
                 cb(err);
 
@@ -695,6 +716,8 @@ cli.main(function(args, options) {
         self.event_handler_write = function(cb) {
             
             cli.debug('event_handler_write');
+
+            console.log(self.block_local)
 
             self.block_local.event_handlers = self.block_local.event_handlers || [];
 
@@ -851,15 +874,15 @@ cli.main(function(args, options) {
                 success: 'Block pushed'
             },
             pull: {
-                functions: ['session_file_get', 'session_get', 'block_read', 'key_get', 'block_get', 'block_write', 'event_handler_write'],
+                functions: ['session_file_get', 'session_get', 'require_init', 'block_read', 'key_get', 'block_get', 'block_write', 'event_handler_write'],
                 success: 'Local block.json updated with remote data.'
             }, 
             start: {
-                functions: ['session_file_get', 'session_get', 'block_read', 'key_get', 'block_start'],
+                functions: ['session_file_get', 'session_get', 'block_read', 'key_get', 'block_get', 'block_start'],
                 success: 'Block started'
             },
             stop: {
-                functions: ['session_file_get', 'session_get', 'block_read', 'key_get', 'block_stop'],
+                functions: ['session_file_get', 'session_get', 'block_read', 'key_get', 'block_get', 'block_stop'],
                 success: 'Block stopped'
             }
         };
