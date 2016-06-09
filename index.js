@@ -717,8 +717,6 @@ cli.main(function(args, options) {
             
             cli.debug('event_handler_write');
 
-            console.log(self.block_local)
-
             self.block_local.event_handlers = self.block_local.event_handlers || [];
 
             async.each(self.block.event_handlers, function(eh, cb) {
