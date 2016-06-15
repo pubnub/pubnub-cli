@@ -416,6 +416,7 @@ cli.main(function(args, options) {
                 
                 if(data) {
                     cli.info('Block.json already exists.... editing');
+                    cb()
                 } else {
 
                     cli.info('Writing block.json to ' + block_file);
