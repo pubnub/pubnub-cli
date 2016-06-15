@@ -256,7 +256,7 @@ cli.main(function(args, options) {
 
             if(Object.keys(opts).length) {
 
-                var hint = 'node pubnub-cli ' + cli.command;
+                var hint = 'pubnub-cli ' + cli.command;
                 for(var key in opts) {
                     hint = hint + ' -' + key + ' ' + opts[key];
                 }
@@ -415,7 +415,7 @@ cli.main(function(args, options) {
             fs.readJson(block_file, function(err, data) {
                 
                 if(data) {
-                    cb('block.json already exists, refusing to overwrite.');
+                    cli.info('Block.json already exists.... editing');
                 } else {
 
                     cli.info('Writing block.json to ' + block_file);
