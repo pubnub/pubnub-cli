@@ -19,7 +19,7 @@ cli.parse({
 }, ['login', 'logout', 'start', 'stop', 'init', 'push', 'pull']);
 
 
-var working_dir = String(pwd());
+var working_dir = String(pwd() + '/');
 
 cli.main(function(args, options) {
 
@@ -63,7 +63,9 @@ cli.main(function(args, options) {
 
         self.block_file_required = false;
 
-        self.env = envs[options.env] || envs.gold;
+        options.env = options.env || 'gold';
+
+        self.env = envs[options.env];
 
         var api = require('./lib/pubnub-api')({
             debug: true,
@@ -147,7 +149,7 @@ cli.main(function(args, options) {
             input._id = data.id || input._id;
             input._key_id = data.key_id || input._key_id;
             input.name = data.name || input.name;
-            input.description = data.name || input.description;
+            input.description = data.description || input.description;
 
             return input;
 
@@ -385,6 +387,8 @@ cli.main(function(args, options) {
 
             cli.info('Reading block.json from ' + block_file);
             fs.readJson(block_file, function(err, data){
+
+                console.log(data    )
 
                 if(err) {
 
