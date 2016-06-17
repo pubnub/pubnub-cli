@@ -85,7 +85,7 @@ cli.main(function(args, options) {
             input.name = data.name || input.name;
             input.event = data.event || input.event;
             input.channels = data.channels || input.channels;
-            input.file = data.file || input.file;
+            input.file = input.file || data.file; // local attribute wins over remote
             input.output = data.output || input.output;
 
             return input;
@@ -724,35 +724,101 @@ cli.main(function(args, options) {
 
             self.block_local.event_handlers = self.block_local.event_handlers || [];
 
+            // for each server event handler
             async.each(self.block.event_handlers, function(eh, cb) {
 
                 eh.file = eh.event + '/' + slug(eh.name) + '.js';
                 full_path = working_dir + options.file + eh.file;
 
-                cli.info('Writing event handler to ' + full_path);
-                fs.outputFile(full_path, eh.code, function (err) {
+                // try to find event handler with same id
+                var no_ids = []; // count the number of eh with no id
+                for(var j in self.block_local.event_handlers) {
 
-                    cli.debug('writing event_handler');
+                    // if ids match, overwrite local with what we have on server
+                    if(eh.id == self.block_local.event_handlers[j]._id) {
+                        var found = true;
+                        self.block_local.event_handlers[j] = mergeEventHandler(self.block_local.event_handlers[j], eh);
+                    }
 
-                    var found = false;
-                    
-                    for(var j in self.block_local.event_handlers) {
+                    if(!self.block_local.event_handlers[j]._id) {
+                        no_ids.push(self.block_local.event_handlers[j])
+                    }
 
-                        if(eh.id == self.block_local.event_handlers[j]._id) {
-                            var found = true;
-                            self.block_local.event_handlers[j] = mergeEventHandler(self.block_local.event_handlers[j], eh);
+                }
+
+                var appendEH = function(){
+
+                    cli.info('Writing event handler to ' + full_path);
+                    fs.outputFile(full_path, eh.code, function (err) {
+
+                        cli.debug('writing event_handler');
+                        self.block_local.event_handlers.push(mergeEventHandler({}, eh));
+                        cb();
+
+                    });
+
+                }
+
+                // if server event handler exists and no match found
+                if(!found) {
+
+                    // if all the existing eh in the file have ids
+                    if(!no_ids.length) {
+
+                        // write the file and push
+                        appendEH();
+
+                    } else {
+                        
+                        cli.error('There are event handlers in your block.json that are unlinked to remote event handers.');
+                        cli.error('Does this (server) event handler match a (local) event handler?');
+                        
+                        cli.info('Event Handler Name: ' + eh.name);
+                        cli.info('Event Handler Description: ' + eh.description);
+
+                        var choices = [];
+
+                        choices.push(new inquirer.Separator('--- Select'));
+
+                        for(var i in self.block_local.event_handlers) {
+
+                            choices.push({
+                                name: self.block_local.event_handlers[i].name,
+                                value: {
+                                    index: i,
+                                    value: self.block_local.event_handlers[i]
+                                }
+                            });
+
                         }
 
+                        choices.push(new inquirer.Separator('--- Create'));
+
+                        choices.push({
+                            name: 'Create a new event handler',
+                            value: false
+                        });
+
+                        inquirer.prompt([{
+                            type: 'list',
+                            name: 'eh',
+                            message: 'Which event handler is this?',
+                            choices: choices
+                        }]).then(function (answers) {
+
+                            if(!answers.eh) {
+                                appendEH();
+                            } else {
+                                mergeEventHandler(self.block_local.event_handlers[answers.eh.index], eh);
+                                cb(null);
+                            }
+
+                        });
+
                     }
 
-                    if(!found) {
-                        // also needs to create directory and add file
-                        self.block_local.event_handlers.push(mergeEventHandler({}, eh));
-                    }
+                }
 
-                    cb();
-
-                });
 
             }, function(err) {
                 
