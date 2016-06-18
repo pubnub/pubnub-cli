@@ -616,7 +616,7 @@ cli.main(function(args, options) {
             
             cli.debug('block_start');
 
-            api.request('post', ['api', 'v1', 'blocks', 'key', self.key.id, 'block', self.block.id, 'start'], {}, function(err, data) {
+            api.request('post', ['api', 'v1', 'blocks', 'key', self.block_local._key_id, 'block', self.block_local._id, 'start'], {}, function(err, data) {
 
                 cli.ok('Sending Start Command');
 
@@ -626,7 +626,7 @@ cli.main(function(args, options) {
                     origin: self.env.origin
                 });
 
-                var chan = 'blocks-state-' + self.key.properties.realtime_analytics_channel + '.' + self.block.id;
+                var chan = 'blocks-state-' + self.key.properties.realtime_analytics_channel + '.' + self.block_local._id;
                 var pending = false;
 
                 cli.info('Subscribing to blocks status channel...');
@@ -663,7 +663,7 @@ cli.main(function(args, options) {
 
             cli.debug('block_stop');
 
-            api.request('post', ['api', 'v1', 'blocks', 'key', self.key.id, 'block', self.block.id, 'stop'], {}, function(err, data) {
+            api.request('post', ['api', 'v1', 'blocks', 'key', self.block_local._key_id, 'block', self.block_local._id, 'stop'], {}, function(err, data) {
                 
                 cb(err);
 
@@ -954,11 +954,11 @@ cli.main(function(args, options) {
                 success: 'Local block.json updated with remote data.'
             }, 
             start: {
-                functions: ['session_file_get', 'session_get', 'block_read', 'key_get', 'block_get', 'block_start'],
+                functions: ['session_file_get', 'session_get', 'block_read', 'key_get', 'block_start'],
                 success: 'Block started'
             },
             stop: {
-                functions: ['session_file_get', 'session_get', 'block_read', 'key_get', 'block_get', 'block_stop'],
+                functions: ['session_file_get', 'session_get', 'block_read', 'block_stop'],
                 success: 'Block stopped'
             }
         };
