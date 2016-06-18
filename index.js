@@ -27,6 +27,9 @@ cli.main(function(args, options) {
 
     var tasks = [];
     var block_file = working_dir + options.file + 'block.json';
+
+    console.log(block_file)
+
     var session_file = os.homedir() + '/.pubnub-cli';
 
     var user_questions = {
@@ -725,7 +728,9 @@ cli.main(function(args, options) {
             self.block_local.event_handlers = self.block_local.event_handlers || [];
 
             // for each server event handler
-            async.each(self.block.event_handlers, function(eh, cb) {
+            async.eachSeries(self.block.event_handlers, function(eh, holla) {
+
+                cli.info('Working on ' + eh.name);
 
                 eh.file = eh.event + '/' + slug(eh.name) + '.js';
                 full_path = working_dir + options.file + eh.file;
@@ -753,7 +758,7 @@ cli.main(function(args, options) {
 
                         cli.debug('writing event_handler');
                         self.block_local.event_handlers.push(mergeEventHandler({}, eh));
-                        cb();
+                        holla();
 
                     });
 
@@ -770,7 +775,7 @@ cli.main(function(args, options) {
 
                     } else {
                         
-                        cli.error('There are event handlers in your block.json that are unlinked to remote event handers.');
+                        cli.error('There is a remote event handler that does not have a local link.');
                         cli.error('Does this (server) event handler match a (local) event handler?');
                         
                         cli.info('Event Handler Name: ' + eh.name);
@@ -799,6 +804,8 @@ cli.main(function(args, options) {
                             value: false
                         });
 
+                        cli.info('prompt')
+
                         inquirer.prompt([{
                             type: 'list',
                             name: 'eh',
@@ -810,7 +817,7 @@ cli.main(function(args, options) {
                                 appendEH();
                             } else {
                                 mergeEventHandler(self.block_local.event_handlers[answers.eh.index], eh);
-                                cb(null);
+                                holla(null);
                             }
 
                         });
