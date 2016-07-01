@@ -252,7 +252,7 @@ Starts running a block.
 
 Input
 
-``zsh
+```zsh
 pubnub-cli start
 ```
 
@@ -278,7 +278,7 @@ Stops a running block.
 
 Input
 
-``zsh
+```zsh
 pubnub-cli stop
 ```
 
