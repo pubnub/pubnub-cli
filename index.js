@@ -11,12 +11,12 @@ require('shelljs/global'); // ability to run shell commands
 
 // cli arguments and commands
 cli.parse({
-
-    block: ['b', 'Specify a Block ID', 'int'],
-    key: ['k', 'Specify a Subscribe Key ID', 'int'],
-    file: ['f', 'Specify a block file', 'path'],
-    env: ['e', 'Specify an environment [bronze, silver, gold]', 'string']
-
+    block: ['b', 'Block ID', 'int'],
+    key: ['k', 'Subscribe Key ID', 'int'],
+    file: ['f', 'A block file', 'path'],
+    env: ['e', 'An environment [bronze, silver, gold]', 'string'],
+    email: ['m', 'Email', 'string'],
+    password: ['p', 'Password', 'string'],
 }, 
 ['login', 'logout', 'start', 'stop', 'init', 'push', 'pull']);
 
@@ -381,10 +381,22 @@ cli.main(function(args, options) {
                     cli.error('No session found, please log in.');   
                 }
                 
-                // no file found, prompt for user and pass
-                inquirer.prompt([user_questions.email, user_questions.password]).then(function (answers) {
-                    login(answers, cb)
-                });
+                if(options.email || options.password) {
+                    if(options.email && options.password) {
+                        login({
+                            email: options.email,
+                            password: options.password
+                        }, cb);
+                    } else {
+                        cli.error('You must supply both email and password to login.');   
+                    }
+                } else {
+                    // no file found, prompt for user and pass
+                    inquirer.prompt([user_questions.email, user_questions.password]).then(function (answers) {
+                        console.log(answers)
+                        login(answers, cb)
+                    });                    
+                }
 
             } else {
 
@@ -426,8 +438,6 @@ cli.main(function(args, options) {
 
             cli.info('Reading block.json from ' + block_file);
             fs.readJson(block_file, function(err, data){
-
-                console.log(data    )
 
                 if(err) {
 
@@ -627,7 +637,7 @@ cli.main(function(args, options) {
 
         };
 
-        writes block to the local file
+        // writes block to the local file
         self.block_write = function(cb) {
 
             cli.debug('block_write');
