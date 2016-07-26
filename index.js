@@ -79,7 +79,7 @@ cli.main(function (args, options) {
         self.key = false;               // the selected key object
         self.eventHandler = false;     // the selected event handler object
 
-        self.blockFile_required = false;
+        self.blockFileRequired = false;
 
         // specify the required environment
         options.env = options.env || 'gold';
@@ -149,7 +149,7 @@ cli.main(function (args, options) {
             // if we're missing this property
             // add interactive question to an array
             var qs = [];
-            o.forEeach(function (key, value) {
+            o.forEeach(function (value, key) {
 
                 if (revise || !eventHandler.hasOwnProperty(key)) {
                     qs.push(value);
@@ -210,7 +210,7 @@ cli.main(function (args, options) {
             // if the block does not have the property
             // add the prompt to a list of questions
             var qs = [];
-            o.forEach(function (key, value) {
+            o.forEach(function (value, key) {
                 if (revise || !block.hasOwnProperty(key)) {
                     qs.push(value);
                 }
@@ -262,31 +262,31 @@ cli.main(function (args, options) {
 
         };
 
-        // var eventHandlerCreate = function (block, cb) {
+        var eventHandlerCreate = function (block, cb) {
 
-        //     updateEventHandler({}, true, function (eh) {
+            updateEventHandler({}, true, function (eh) {
 
-        //         eh.block_id = block.id;
-        //         eh.key_id = block.key_id;
+                eh.block_id = block.id;
+                eh.key_id = block.key_id;
 
-        //         eh.type = 'js';
-        //         eh.code = '// code goes here';
+                eh.type = 'js';
+                eh.code = '// code goes here';
 
-        //         api.request('post', ['api', 'v1', 'blocks', 'key',
-        //             block.key_id, 'eventHandler'], {
-        //                 form: eh
-        //             }, function (err) {
+                api.request('post', ['api', 'v1', 'blocks', 'key',
+                    block.key_id, 'eventHandler'], {
+                        form: eh
+                    }, function (err) {
 
-        //                 cli.ok('Event Handler Created');
-        //                 cb(err ? err.message : null);
+                        cli.ok('Event Handler Created');
+                        cb(err ? err.message : null);
 
-        //             }
-        //         );
+                    }
+                );
 
-        //     });
+            });
 
 
-        // };
+        };
 
         // OK: Use this handy command next time:
         // OK: pubnub-cli push -b 1130 -k 145183
@@ -310,7 +310,7 @@ cli.main(function (args, options) {
 
                 var hint = 'pubnub-cli ' + cli.command;
 
-                opts.forEach(function (key, value) {
+                opts.forEach(function (value, key) {
                     hint = hint + ' -' + key + ' ' + value;
                 });
 
@@ -323,9 +323,9 @@ cli.main(function (args, options) {
         };
 
         // restores session from local file
-        self.sessionFile_get = function (cb) {
+        self.sessionFileGet = function (cb) {
 
-            cli.debug('sessionFile_get');
+            cli.debug('sessionFileGet');
 
             // see if session file exists
             cli.info('Reading session from ' + sessionFile);
@@ -343,7 +343,7 @@ cli.main(function (args, options) {
         };
 
         // deletes the local session file
-        self.session_delete = function (cb) {
+        self.sessionDelete = function (cb) {
 
             cli.debug('delete_settings');
 
@@ -451,22 +451,22 @@ cli.main(function (args, options) {
         };
 
         // this is a shortcut to require a block.json is supplied
-        self.require_init = function (cb) {
-            self.blockFile_required = true;
+        self.requireInit = function (cb) {
+            self.blockFileRequired = true;
             cb();
         };
 
         // reads a block.json from wokring dir and sets as self.blockLocal
-        self.block_read = function (cb) {
+        self.blockRead = function (cb) {
 
-            cli.debug('block_read');
+            cli.debug('blockRead');
 
             cli.info('Reading block.json from ' + blockFile);
             fs.readJson(blockFile, function (err, data) {
 
                 if (err) {
 
-                    if (self.blockFile_required) {
+                    if (self.blockFileRequired) {
                         cli.info('No block.json found.' +
                             ' Please run pubnub-cli init.');
                     } else {
@@ -487,9 +487,9 @@ cli.main(function (args, options) {
         };
 
         // creates a block.json in working dir
-        self.blockFile_create = function (cb) {
+        self.blockFileCreate = function (cb) {
 
-            cli.debug('blockFile_create');
+            cli.debug('blockFileCreate');
 
             cli.info('Checking for block.json in ' + blockFile);
             fs.readJson(blockFile, function (err, data) {
@@ -510,9 +510,9 @@ cli.main(function (args, options) {
         };
 
         // sets self.key
-        self.key_get = function (cb) {
+        self.keyGet = function (cb) {
 
-            cli.debug('key_get');
+            cli.debug('keyGet');
 
             // looks first in options, then in remote block, then local block
             var givenKey = options.key ||
@@ -555,13 +555,13 @@ cli.main(function (args, options) {
                     var choices = [];
 
                     // loop through apps
-                    data.result.forEach(function (key, value) {
+                    data.result.forEach(function (value) {
 
                         choices.push(new inquirer.Separator('---'
                             + value.name));
 
                         // loop through keys in app
-                        value.keys.forEach(function (key2, value2) {
+                        value.keys.forEach(function (value2) {
 
                             choices.push({
                                 name: value2.properties.name
@@ -592,7 +592,7 @@ cli.main(function (args, options) {
         };
 
         // gets a remote block and sets as self.block
-        self.block_get = function (cb) {
+        self.blockGet = function (cb) {
 
             cli.debug('block');
 
@@ -613,7 +613,7 @@ cli.main(function (args, options) {
                             // if block is supplied through cli
                             var paramBlock = false;
 
-                            result.payload.forEach(function (key, value) {
+                            result.payload.forEach(function (value) {
 
                                 if (givenBlock === value.id) {
                                     paramBlock = value;
@@ -644,7 +644,7 @@ cli.main(function (args, options) {
                                 choices.push(
                                     new inquirer.Separator('--- Blocks'));
 
-                                result.payload.forEach(function (key, value) {
+                                result.payload.forEach(function (value) {
 
                                     choices.push({
                                         name: value.name,
@@ -691,9 +691,9 @@ cli.main(function (args, options) {
         };
 
         // writes block to the local file
-        self.block_write = function (cb) {
+        self.blockWrite = function (cb) {
 
-            cli.debug('block_write');
+            cli.debug('blockWrite');
 
             self.blockLocal._key_id = self.key.id;
             self.blockLocal._id = self.block.id;
@@ -706,9 +706,9 @@ cli.main(function (args, options) {
         };
 
         // pushes self.blockLocal to endpoint
-        self.block_push = function (cb) {
+        self.blockPush = function (cb) {
 
-            cli.debug('block_push');
+            cli.debug('blockPush');
 
             api.request('put', ['api', 'v1', 'blocks', 'key',
                 self.block.key_id, 'block', self.block.id], {
@@ -721,9 +721,9 @@ cli.main(function (args, options) {
         };
 
         // starts block on pubnub server
-        self.block_start = function (cb) {
+        self.blockStart = function (cb) {
 
-            cli.debug('block_start');
+            cli.debug('blockStart');
 
             api.request('post', ['api', 'v1', 'blocks', 'key',
                 self.blockLocal._key_id, 'block', self.blockLocal._id,
@@ -781,9 +781,9 @@ cli.main(function (args, options) {
         };
 
         // issue block stop request on server
-        self.block_stop = function (cb) {
+        self.blockStop = function (cb) {
 
-            cli.debug('block_stop');
+            cli.debug('blockStop');
 
             api.request('post', ['api', 'v1', 'blocks', 'key',
                 self.blockLocal._key_id, 'block', self.blockLocal._id,
@@ -797,7 +797,7 @@ cli.main(function (args, options) {
         };
 
         // get event handler from server and set as self.eventHandler
-        self.eventHandler_get = function (cb) {
+        self.eventHandlerGet = function (cb) {
 
             cli.debug('eventHandler');
 
@@ -806,7 +806,7 @@ cli.main(function (args, options) {
 
                 var paramEventHandler = false;
 
-                self.block.eventHandlers.forEach(function (key, value) {
+                self.block.eventHandlers.forEach(function (value, key) {
 
                     if (options.eventHandler === value.id) {
                         paramEventHandler = value;
@@ -825,7 +825,7 @@ cli.main(function (args, options) {
 
                 var choices = [];
 
-                self.block.eventHandlers.forEach(function (key, value) {
+                self.block.eventHandlers.forEach(function (value, key) {
 
                     choices.push({
                         name: value.name,
@@ -852,9 +852,9 @@ cli.main(function (args, options) {
         };
 
         // write the event handler to a js file within a directory
-        self.eventHandler_write = function (cb) {
+        self.eventHandlerWrite = function (cb) {
 
-            cli.debug('eventHandler_write');
+            cli.debug('eventHandlerWrite');
 
             self.blockLocal.eventHandlers =
                 self.blockLocal.eventHandlers || [];
@@ -872,7 +872,7 @@ cli.main(function (args, options) {
 
                 var found = false;
 
-                self.blockLocal.eventHandlers.forEach(function (key, value) {
+                self.blockLocal.eventHandlers.forEach(function (value, key) {
 
                     // if ids match
                     // overwrite local with what we have on server
@@ -929,7 +929,7 @@ cli.main(function (args, options) {
 
                         var i = 0;
                         self.blockLocal.eventHandlers.forEach(
-                            function (key, value) {
+                            function (value, key) {
 
                                 choices.push({
                                     name: value.name,
@@ -986,7 +986,7 @@ cli.main(function (args, options) {
         };
 
         // ensures that all properties exist within block.json
-        self.block_complete = function (cb) {
+        self.blockComplete = function (cb) {
 
             cli.debug('ensuring block in block.json is complete');
 
@@ -1002,7 +1002,7 @@ cli.main(function (args, options) {
         };
 
         // ensures that all needed properties exist within eventHandler
-        self.eventHandler_complete = function (cb) {
+        self.eventHandlerComplete = function (cb) {
 
             cli.debug('ensuring event handler in block.json is complete');
 
@@ -1027,9 +1027,9 @@ cli.main(function (args, options) {
         };
 
         // uploads the event handler to the server
-        self.eventHandler_push = function (cb) {
+        self.eventHandlerPush = function (cb) {
 
-            cli.debug('eventHandler_push');
+            cli.debug('eventHandlerPush');
 
             var update = function (data, done) {
 
@@ -1102,48 +1102,49 @@ cli.main(function (args, options) {
 
         var routes = {
             login: {
-                functions: ['sessionFile_get', 'sessionGet'],
+                functions: ['sessionFileGet', 'sessionGet'],
                 success: 'Logged In!'
             },
             logout: {
-                functions: ['sessionFile_get', 'session_delete'],
+                functions: ['sessionFileGet', 'sessionDelete'],
                 success: 'Logged Out'
             },
             init: {
-                functions: ['sessionFile_get', 'sessionGet',
-                    'blockFile_create', 'block_read', 'key_get', 'block_get',
-                    'block_write', 'eventHandler_write'],
+                functions: ['sessionFileGet', 'sessionGet',
+                    'blockFileCreate', 'blockRead', 'keyGet', 'blockGet',
+                    'blockWrite', 'eventHandlerWrite'],
                 success: 'New block.json written to disk.'
             },
             push: {
-                functions: ['sessionFile_get', 'sessionGet', 'block_read',
-                    'key_get', 'block_get', 'block_complete',
-                    'eventHandler_complete', 'eventHandler_push',
-                    'block_push'],
+                functions: ['sessionFileGet', 'sessionGet', 'blockRead',
+                    'keyGet', 'blockGet', 'blockComplete',
+                    'eventHandlerComplete', 'eventHandlerPush',
+                    'blockPush'],
                 success: 'Block pushed'
             },
             pull: {
-                functions: ['sessionFile_get', 'sessionGet', 'require_init',
-                    'block_read', 'key_get', 'block_get', 'block_write',
-                    'eventHandler_write'],
+                functions: ['sessionFileGet', 'sessionGet', 'requireInit',
+                    'blockRead', 'keyGet', 'blockGet', 'blockWrite',
+                    'eventHandlerWrite'],
                 success: 'Local block.json updated with remote data.'
             },
             start: {
-                functions: ['sessionFile_get', 'sessionGet', 'block_read',
-                    'key_get', 'block_start'],
+                functions: ['sessionFileGet', 'sessionGet', 'blockRead',
+                    'keyGet', 'blockStart'],
                 success: 'Block started'
             },
             stop: {
-                functions: ['sessionFile_get', 'sessionGet', 'block_read',
-                    'block_stop'],
+                functions: ['sessionFileGet', 'sessionGet', 'blockRead',
+                    'blockStop'],
                 success: 'Block stopped'
             }
         };
 
         // this is the magic function that creates a function queue
         // using the supplied CLI command
-        routes[cli.command].functions.forEach(function (key, value) {
-            tasks.push(value);
+        routes[cli.command].functions.forEach(function (value, key) {
+            console.log(value, key);
+            tasks.push(self[value]);
         });
 
         // async series is used to execute the commands in series
