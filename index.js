@@ -369,11 +369,11 @@ cli.main(function (args, options) {
 
             cli.debug('get_user');
 
-            var login = function (args, cb) {
+            var login = function (args2) {
 
                 cli.spinner('Logging In...');
 
-                api.init(args, function (err, body) {
+                api.init(args2, function (err, body) {
 
                     cli.spinner('Logging In... Done!', true);
 
@@ -383,9 +383,9 @@ cli.main(function (args, options) {
 
                         cli.info('Writing session to ' + sessionFile);
                         fs.outputJson(sessionFile, body.result,
-                            { spaces: 4 }, function (err) {
+                            { spaces: 4 }, function (err2) {
                                 self.session = body.result;
-                                cb(err);
+                                cb(err2);
                             }
                         );
 
@@ -423,7 +423,7 @@ cli.main(function (args, options) {
 
             } else {
 
-                // we have the file
+                // we have the session file
                 if (self.session.expires > (new Date().getTime() / 1000)) {
 
                     cli.ok('Working as ' + self.session.user.email);
@@ -666,10 +666,12 @@ cli.main(function (args, options) {
 
                                 if (!answers.block) {
 
-                                    blockCreate(key, function (err, data){
-                                        self.block = data;
-                                        cb(err);
-                                    });
+                                    blockCreate(self.key,
+                                        function (err2, data) {
+                                            self.block = data;
+                                            cb(err2);
+                                        }
+                                    );
 
                                 } else {
                                     self.block = answers.block;
@@ -725,7 +727,7 @@ cli.main(function (args, options) {
 
             api.request('post', ['api', 'v1', 'blocks', 'key',
                 self.blockLocal._key_id, 'block', self.blockLocal._id,
-                'start'], {}, function (err) {
+                'start'], {}, function () {
 
                     cli.ok('Sending Start Command');
 
