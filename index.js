@@ -1,3 +1,4 @@
+/* global pwd */
 var inquirer = require('inquirer'); // interactive mode selection
 var cli = require('cli').enable('status'); // Enable cli.ok, cli.error, etc
 var os = require('os'); // os level functions
@@ -148,11 +149,13 @@ cli.main(function (args, options) {
             // if we're missing this property
             // add interactive question to an array
             var qs = [];
-            for (var prop in o) {
-                if (revise || !eventHandler.hasOwnProperty(prop)) {
-                    qs.push(o[prop]);
+            o.forEeach(function (key, value) {
+
+                if (revise || !eventHandler.hasOwnProperty(key)) {
+                    qs.push(value);
                 }
-            }
+
+            });
 
             if (qs.length) {
 
@@ -207,11 +210,11 @@ cli.main(function (args, options) {
             // if the block does not have the property
             // add the prompt to a list of questions
             var qs = [];
-            for (var prop in o) {
-                if (revise || !block.hasOwnProperty(prop)){
-                    qs.push(o[prop]);
+            o.forEach(function (key, value) {
+                if (revise || !block.hasOwnProperty(key)) {
+                    qs.push(value);
                 }
-            }
+            });
 
             if (qs.length) {
 
@@ -272,7 +275,7 @@ cli.main(function (args, options) {
                 api.request('post', ['api', 'v1', 'blocks', 'key',
                     block.key_id, 'eventHandler'], {
                         form: eh
-                    }, function (err, data) {
+                    }, function (err) {
 
                         cli.ok('Event Handler Created');
                         cb(err ? err.message : null);
@@ -306,9 +309,10 @@ cli.main(function (args, options) {
             if (Object.keys(opts).length) {
 
                 var hint = 'pubnub-cli ' + cli.command;
-                for (var key in opts) {
-                    hint = hint + ' -' + key + ' ' + opts[key];
-                }
+
+                opts.forEach(function (key, value) {
+                    hint = hint + ' -' + key + ' ' + value;
+                });
 
                 cli.ok('Use this handy command next time:');
                 cli.ok(hint);
@@ -525,13 +529,18 @@ cli.main(function (args, options) {
 
                     // we need to map the key id to the key object
                     var paramKey = false;
-                    for (var i in data.result) {
-                        for (var j in data.result[i].keys) {
-                            if (givenKey === data.result[i].keys[j].id) {
-                                paramKey = data.result[i].keys[j]
+
+                    data.result.forEach(function (key, app) {
+
+                        app.forEach(function (key2, value) {
+
+                            if (givenKey === value.id) {
+                                paramKey = value;
                             }
-                        }
-                    }
+
+                        });
+
+                    });
 
                     if (!paramKey) {
                         cb('Invalid key ID');
@@ -544,20 +553,25 @@ cli.main(function (args, options) {
 
                     // create an interactive key selection
                     var choices = [];
-                    for (var i in data.result) {
+
+                    // loop through apps
+                    data.result.forEach(function (key, value) {
 
                         choices.push(new inquirer.Separator('---'
-                            + data.result[i].name));
+                            + value.name));
 
-                        for (var j in data.result[i].keys) {
+                        // loop through keys in app
+                        value.keys.forEach(function (key2, value2) {
+
                             choices.push({
-                                name: data.result[i].keys[j].properties.name
-                                    || data.result[i].keys[j].subscribe_key,
-                                value: data.result[i].keys[j]
+                                name: value2.properties.name
+                                    || value2.subscribe_key,
+                                value: value2
                             });
-                        }
 
-                    }
+                        });
+
+                    });
 
                     cli.ok('Which app are you working on?');
 
@@ -587,7 +601,7 @@ cli.main(function (args, options) {
             var givenBlock = options.block ||
                 self.block.id || self.blockLocal._id;
 
-            api.request('get', ['api', 'v1', 'blocks', 
+            api.request('get', ['api', 'v1', 'blocks',
                 'key', self.key.id, 'block'], {}, function (err, result) {
 
                     if (err) {
@@ -598,11 +612,14 @@ cli.main(function (args, options) {
 
                             // if block is supplied through cli
                             var paramBlock = false;
-                            for (var i in result.payload) {
-                                if (givenBlock === result.payload[i].id) {
-                                    paramBlock = result.payload[i];
+
+                            result.payload.forEach(function (key, value) {
+
+                                if (givenBlock === value.id) {
+                                    paramBlock = value;
                                 }
-                            }
+
+                            });
 
                             if (!paramBlock) {
                                 cb('Invalid block ID');
@@ -627,14 +644,14 @@ cli.main(function (args, options) {
                                 choices.push(
                                     new inquirer.Separator('--- Blocks'));
 
-                                for (var i in result.payload) {
+                                result.payload.forEach(function (key, value) {
 
                                     choices.push({
-                                        name: result.payload[i].name,
-                                        value: result.payload[i]
+                                        name: value.name,
+                                        value: value
                                     });
 
-                                }
+                                });
 
                             }
 
@@ -694,10 +711,8 @@ cli.main(function (args, options) {
             api.request('put', ['api', 'v1', 'blocks', 'key',
                 self.block.key_id, 'block', self.block.id], {
                     form: self.blockLocal
-                }, function (err, data) {
-
+                }, function (err) {
                     cb(err ? err.message : null);
-
                 }
             );
 
@@ -710,7 +725,7 @@ cli.main(function (args, options) {
 
             api.request('post', ['api', 'v1', 'blocks', 'key',
                 self.blockLocal._key_id, 'block', self.blockLocal._id,
-                'start'], {}, function (err, data) {
+                'start'], {}, function (err) {
 
                     cli.ok('Sending Start Command');
 
@@ -726,8 +741,6 @@ cli.main(function (args, options) {
                     var chan = 'blocks-state-'
                         + self.key.properties.realtime_analytics_channel
                         + '.' + self.blockLocal._id;
-
-                    var pending = false;
 
                     cli.info('Subscribing to blocks status channel...');
 
@@ -772,7 +785,7 @@ cli.main(function (args, options) {
 
             api.request('post', ['api', 'v1', 'blocks', 'key',
                 self.blockLocal._key_id, 'block', self.blockLocal._id,
-                'stop'], {}, function (err, data) {
+                'stop'], {}, function (err) {
 
                     cb(err);
 
@@ -789,13 +802,15 @@ cli.main(function (args, options) {
             // if event is supplied through cli
             if (options.eventHandler) {
 
-                var param_ = false;
-                for (var i in self.block.eventHandlers) {
-                    if (options.eventHandler
-                        === self.block.eventHandlers[i].id) {
-                        paramEventHandler = self.block.eventHandlers[i];
+                var paramEventHandler = false;
+
+                self.block.eventHandlers.forEach(function (key, value) {
+
+                    if (options.eventHandler === value.id) {
+                        paramEventHandler = value;
                     }
-                }
+
+                });
 
                 if (!paramEventHandler) {
                     cb('Invalid event handler ID');
@@ -807,14 +822,15 @@ cli.main(function (args, options) {
             } else {
 
                 var choices = [];
-                for (var i in self.block.eventHandlers) {
+
+                self.block.eventHandlers.forEach(function (key, value) {
 
                     choices.push({
-                        name: self.block.eventHandlers[i].name,
-                        value: self.block.eventHandlers[i]
+                        name: value.name,
+                        value: value
                     });
 
-                }
+                });
 
                 cli.ok('Which event handler?');
 
@@ -851,29 +867,30 @@ cli.main(function (args, options) {
 
                 // try to find event handler with same id
                 var noIds = []; // count the number of eh with no id
-                for (var j in self.blockLocal.eventHandlers) {
+
+                var found = false;
+
+                self.blockLocal.eventHandlers.forEach(function (key, value) {
 
                     // if ids match
                     // overwrite local with what we have on server
-                    if (eh.id === self.blockLocal.eventHandlers[j]._id) {
-                        var found = true;
-                        self.blockLocal.eventHandlers[j] =
-                            mergeEventHandler(
-                                self.blockLocal.eventHandlers[j], eh);
+                    if (eh.id === value._id) {
+                        found = true;
+                        value = mergeEventHandler(value, eh);
                     }
 
                     // find event handlers on server that do not exist locally
-                    if (!self.blockLocal.eventHandlers[j]._id) {
-                        noIds.push(self.blockLocal.eventHandlers[j]);
+                    if (!value._id) {
+                        noIds.push(value);
                     }
 
-                }
+                });
 
                 // writes an event handler to disk
                 var appendEH = function () {
 
                     cli.info('Writing event handler to ' + fullPath);
-                    fs.outputFile(fullPath, eh.code, function (err) {
+                    fs.outputFile(fullPath, eh.code, function () {
 
                         cli.debug('writing eventHandler');
                         self.blockLocal.eventHandlers.push(
@@ -908,17 +925,21 @@ cli.main(function (args, options) {
 
                         choices.push(new inquirer.Separator('--- Select'));
 
-                        for (var i in self.blockLocal.eventHandlers) {
+                        var i = 0;
+                        self.blockLocal.eventHandlers.forEach(
+                            function (key, value) {
 
-                            choices.push({
-                                name: self.blockLocal.eventHandlers[i].name,
-                                value: {
-                                    index: i,
-                                    value: self.blockLocal.eventHandlers[i]
-                                }
-                            });
+                                choices.push({
+                                    name: value.name,
+                                    value: {
+                                        index: i,
+                                        value: value
+                                    }
+                                });
+                                i++;
 
-                        }
+                            }
+                        );
 
                         choices.push(new inquirer.Separator('--- Create'));
 
@@ -952,7 +973,7 @@ cli.main(function (args, options) {
                 }
 
 
-            }, function (err) {
+            }, function () {
 
                 cli.debug('Writing event handlers to block.json in'
                     + blockFile);
@@ -1035,7 +1056,7 @@ cli.main(function (args, options) {
                     data.key_id = self.block.key_id;
                     data.type = 'js';
 
-                    api.request('post', ['api', 'v1', 'blocks', 'key', 
+                    api.request('post', ['api', 'v1', 'blocks', 'key',
                         self.block.key_id, 'eventHandler'], {
                             form: data
                         }, done);
@@ -1119,14 +1140,14 @@ cli.main(function (args, options) {
 
         // this is the magic function that creates a function queue
         // using the supplied CLI command
-        for (var cmd in routes[cli.command].functions) {
-            tasks.push(self[routes[cli.command].functions[cmd]]);
-        }
+        routes[cli.command].functions.forEach(function (key, value) {
+            tasks.push(value);
+        });
 
         // async series is used to execute the commands in series
         // if one function fails, the process immediately returns
         // and displays an error
-        async.series(tasks, function (err, results) {
+        async.series(tasks, function (err) {
 
             if (err) {
                 // display our error if one is thrown
