@@ -149,10 +149,10 @@ cli.main(function (args, options) {
             // if we're missing this property
             // add interactive question to an array
             var qs = [];
-            o.forEeach(function (value, key) {
+            Object.keys(o).forEach(function (key) {
 
                 if (revise || !eventHandler.hasOwnProperty(key)) {
-                    qs.push(value);
+                    qs.push(o[key]);
                 }
 
             });
@@ -210,9 +210,9 @@ cli.main(function (args, options) {
             // if the block does not have the property
             // add the prompt to a list of questions
             var qs = [];
-            o.forEach(function (value, key) {
+            Object.keys(o).forEach(function (key) {
                 if (revise || !block.hasOwnProperty(key)) {
-                    qs.push(value);
+                    qs.push(o[key]);
                 }
             });
 
@@ -273,7 +273,7 @@ cli.main(function (args, options) {
                 eh.code = '// code goes here';
 
                 api.request('post', ['api', 'v1', 'blocks', 'key',
-                    block.key_id, 'eventHandler'], {
+                    block.key_id, 'event_handler'], {
                         form: eh
                     }, function (err) {
 
@@ -416,7 +416,6 @@ cli.main(function (args, options) {
                     inquirer.prompt(
                         [userQuestions.email, userQuestions.password])
                         .then(function (answers) {
-                            console.log(answers);
                             login(answers, cb);
                         });
                 }
@@ -530,15 +529,9 @@ cli.main(function (args, options) {
                     // we need to map the key id to the key object
                     var paramKey = false;
 
-                    console.log('this...')
-                    console.log(data.result)
-
                     data.result.forEach(function (app) {
 
-                        console.log('that...')
-                        console.log(app)
-
-                        app.keys.forEach(function (key2, value) {
+                        app.keys.forEach(function (value) {
 
                             if (givenKey === value.id) {
                                 paramKey = value;
@@ -865,8 +858,6 @@ cli.main(function (args, options) {
             self.blockLocal.eventHandlers =
                 self.blockLocal.eventHandlers || [];
 
-            console.log(self.blockLocal.eventHandlers);
-
             // for each server event handler
             async.eachSeries(self.block.event_handlers, function (eh, holla) {
 
@@ -1054,7 +1045,7 @@ cli.main(function (args, options) {
 
                     // if id exists, update (put)
                     api.request('put', ['api', 'v1', 'blocks', 'key',
-                        self.block.key_id, 'eventHandler', id], {
+                        self.block.key_id, 'event_handler', id], {
                             form: data
                         }, done);
 
@@ -1067,7 +1058,7 @@ cli.main(function (args, options) {
                     data.type = 'js';
 
                     api.request('post', ['api', 'v1', 'blocks', 'key',
-                        self.block.key_id, 'eventHandler'], {
+                        self.block.key_id, 'event_handler'], {
                             form: data
                         }, done);
 
