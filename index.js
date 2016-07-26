@@ -240,7 +240,7 @@ cli.main(function (args, options) {
 
         var blockCreate = function (key, cb) {
 
-            updateBlock(blockLocal, true, function (block) {
+            updateBlock(self.blockLocal, true, function (block) {
 
                 block.key_id = key.id;
                 block.subscribe_key = key.subscribe_key;
@@ -262,31 +262,31 @@ cli.main(function (args, options) {
 
         };
 
-        var eventHandlerCreate = function (block, cb) {
+        // var eventHandlerCreate = function (block, cb) {
 
-            updateEventHandler({}, true, function (eh) {
+        //     updateEventHandler({}, true, function (eh) {
 
-                eh.block_id = block.id;
-                eh.key_id = block.key_id;
+        //         eh.block_id = block.id;
+        //         eh.key_id = block.key_id;
 
-                eh.type = 'js';
-                eh.code = '// code goes here';
+        //         eh.type = 'js';
+        //         eh.code = '// code goes here';
 
-                api.request('post', ['api', 'v1', 'blocks', 'key',
-                    block.key_id, 'eventHandler'], {
-                        form: eh
-                    }, function (err) {
+        //         api.request('post', ['api', 'v1', 'blocks', 'key',
+        //             block.key_id, 'eventHandler'], {
+        //                 form: eh
+        //             }, function (err) {
 
-                        cli.ok('Event Handler Created');
-                        cb(err ? err.message : null);
+        //                 cli.ok('Event Handler Created');
+        //                 cb(err ? err.message : null);
 
-                    }
-                );
+        //             }
+        //         );
 
-            });
+        //     });
 
 
-        };
+        // };
 
         // OK: Use this handy command next time:
         // OK: pubnub-cli push -b 1130 -k 145183
