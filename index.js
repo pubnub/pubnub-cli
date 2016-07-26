@@ -310,8 +310,8 @@ cli.main(function (args, options) {
 
                 var hint = 'pubnub-cli ' + cli.command;
 
-                opts.forEach(function (value, key) {
-                    hint = hint + ' -' + key + ' ' + value;
+                Object.keys(opts).forEach(function (key) {
+                    hint = hint + ' -' + key + ' ' + opts[key];
                 });
 
                 cli.ok('Use this handy command next time:');
@@ -530,9 +530,15 @@ cli.main(function (args, options) {
                     // we need to map the key id to the key object
                     var paramKey = false;
 
-                    data.result.forEach(function (key, app) {
+                    console.log('this...')
+                    console.log(data.result)
 
-                        app.forEach(function (key2, value) {
+                    data.result.forEach(function (app) {
+
+                        console.log('that...')
+                        console.log(app)
+
+                        app.keys.forEach(function (key2, value) {
 
                             if (givenKey === value.id) {
                                 paramKey = value;
@@ -806,7 +812,7 @@ cli.main(function (args, options) {
 
                 var paramEventHandler = false;
 
-                self.block.eventHandlers.forEach(function (value, key) {
+                self.block.event_handlers.forEach(function (value, key) {
 
                     if (options.eventHandler === value.id) {
                         paramEventHandler = value;
@@ -825,7 +831,7 @@ cli.main(function (args, options) {
 
                 var choices = [];
 
-                self.block.eventHandlers.forEach(function (value, key) {
+                self.block.event_handlers.forEach(function (value, key) {
 
                     choices.push({
                         name: value.name,
@@ -859,8 +865,10 @@ cli.main(function (args, options) {
             self.blockLocal.eventHandlers =
                 self.blockLocal.eventHandlers || [];
 
+            console.log(self.blockLocal.eventHandlers);
+
             // for each server event handler
-            async.eachSeries(self.block.eventHandlers, function (eh, holla) {
+            async.eachSeries(self.block.event_handlers, function (eh, holla) {
 
                 cli.info('Working on ' + eh.name);
 
@@ -1143,7 +1151,6 @@ cli.main(function (args, options) {
         // this is the magic function that creates a function queue
         // using the supplied CLI command
         routes[cli.command].functions.forEach(function (value, key) {
-            console.log(value, key);
             tasks.push(self[value]);
         });
 
