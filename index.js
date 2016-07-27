@@ -880,8 +880,8 @@ cli.main(function (args, options) {
 
         cli.debug('eventHandlerWrite');
 
-        self.blockLocal.eventHandlers =
-            self.blockLocal.eventHandlers || [];
+        self.blockLocal.event_handlers =
+            self.blockLocal.event_handlers || [];
 
         // for each server event handler
         async.eachSeries(self.blockRemote.event_handlers, 
@@ -897,7 +897,7 @@ cli.main(function (args, options) {
 
                 var found = false;
 
-                self.blockLocal.eventHandlers.forEach(function (value) {
+                self.blockLocal.event_handlers.forEach(function (value) {
 
                     // if ids match
                     // overwrite local with what we have on server
@@ -920,7 +920,7 @@ cli.main(function (args, options) {
                     fs.outputFile(fullPath, eh.code, function () {
 
                         cli.debug('writing eventHandler');
-                        self.blockLocal.eventHandlers.push(
+                        self.blockLocal.event_handlers.push(
                             mergeEventHandler({}, eh));
                         holla();
 
@@ -953,7 +953,7 @@ cli.main(function (args, options) {
                         choices.push(new inquirer.Separator('--- Select'));
 
                         var i = 0;
-                        self.blockLocal.eventHandlers.forEach(
+                        self.blockLocal.event_handlers.forEach(
                             function (value) {
 
                                 choices.push({
@@ -988,7 +988,7 @@ cli.main(function (args, options) {
                                 appendEH();
                             } else {
                                 mergeEventHandler(
-                                    self.blockLocal.eventHandlers[
+                                    self.blockLocal.event_handlers[
                                         answers.eh.index], eh);
                                 holla(null);
                             }
@@ -1032,7 +1032,7 @@ cli.main(function (args, options) {
 
         cli.debug('ensuring event handler in block.json is complete');
 
-        async.mapSeries(self.blockLocal.eventHandlers,
+        async.mapSeries(self.blockLocal.event_handlers,
             function (eh, holla) {
 
                 updateEventHandler(eh, false, function (data) {
@@ -1041,7 +1041,7 @@ cli.main(function (args, options) {
 
             }, function (err, results) {
 
-                self.blockLocal.eventHandlers = results;
+                self.blockLocal.event_handlers = results;
 
                 cli.debug('Writing block.json in' + blockFile);
                 fs.outputJson(blockFile, self.blockLocal,
@@ -1067,7 +1067,6 @@ cli.main(function (args, options) {
                 delete data.file;
             }
 
-
             if (id) {
 
                 // if id exists, update (put)
@@ -1079,7 +1078,6 @@ cli.main(function (args, options) {
             } else {
 
                 // of id does not exist (update)
-
                 data.block_id = self.blockRemote.id;
                 data.key_id = self.blockRemote.key_id;
                 data.type = 'js';
@@ -1094,11 +1092,12 @@ cli.main(function (args, options) {
         };
 
         // update all event handlers supplies in block.json
-        async.each(self.blockLocal.eventHandlers, function (eh, holla) {
+        async.each(self.blockLocal.event_handlers, function (eh, holla) {
 
             if (eh.file) {
 
                 var fullPath = workingDir + options.file + eh.file;
+                var testJson = workingDir + options.file + 'test.json';
 
                 cli.info('Uploading event handler from ' + fullPath);
                 fs.readFile(fullPath, 'utf8', function (err, data) {
@@ -1106,7 +1105,25 @@ cli.main(function (args, options) {
                     if (err) {
                         holla(err.message);
                     } else {
+
+                        // internal use only
+                        // see if there's a test.json in directory
+                        if (fs.existsSync(testJson)) {
+
+                            // replace placeholder vars with those
+                            // in test.json if so
+                            var testVars = JSON.parse(
+                                fs.readFileSync(testJson, 'utf8'));
+
+                            // do the actual replacing
+                            Object.keys(testVars).forEach(function (key) {
+                                data = data.replace(key, testVars[key]);
+                            });
+
+                        }
+
                         eh.code = data;
+
                         update(eh, holla);
                     }
 
