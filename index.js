@@ -17,6 +17,8 @@ cli.parse({
     file: ['f', 'A block file', 'path'],
     env: ['e', 'An environment [bronze, silver, gold]', 'string'],
     email: ['m', 'Email', 'string'],
+    insert: ['n', 'Insert Mode. Create new blocks and skip prompts.'
+        , true, false],
     password: ['p', 'Password', 'string']
 },
 ['login', 'logout', 'start', 'stop', 'init', 'push', 'pull']);
@@ -38,6 +40,11 @@ cli.main(function (args, options) {
 
     // token and user info stored in home directory as this file
     var sessionFile = os.homedir() + '/.pubnub-cli';
+
+    if (options.insert) {
+        cli.info('Warning! Insert option provided.');
+        cli.info('Creating new blocks and skipping prompts.');
+    }
 
     // user login questions for inquirer
     var userQuestions = {
@@ -75,7 +82,7 @@ cli.main(function (args, options) {
 
         self.session = false;           // the user session
         self.blockLocal = false;       // the local block file
-        self.block = false;             // the remove block json object
+        self.blockRemote = false;             // the remove block json object
         self.key = false;               // the selected key object
         self.eventHandler = false;     // the selected event handler object
 
@@ -101,6 +108,9 @@ cli.main(function (args, options) {
 
         // this merges a remote event handler with a local event handler
         var mergeEventHandler = function (input, data) {
+
+            cli.debug('Merging remote event handle'
+                + 'with local event handler.');
 
             input._id = data.id || input._id;
             input.name = data.name || input.name;
@@ -179,6 +189,8 @@ cli.main(function (args, options) {
         // merges a remote block with what exists on the local filesystem
         var mergeBlock = function (input, data) {
 
+            cli.debug('Merging remote block with local block.');
+
             input._id = data.id || input._id;
             input._key_id = data.key_id || input._key_id;
             input.name = data.name || input.name;
@@ -211,6 +223,7 @@ cli.main(function (args, options) {
             // add the prompt to a list of questions
             var qs = [];
             Object.keys(o).forEach(function (key) {
+
                 if (revise || !block.hasOwnProperty(key)) {
                     qs.push(o[key]);
                 }
@@ -240,7 +253,7 @@ cli.main(function (args, options) {
 
         var blockCreate = function (key, cb) {
 
-            updateBlock(self.blockLocal, true, function (block) {
+            updateBlock(self.blockLocal, !options.insert, function (block) {
 
                 block.key_id = key.id;
                 block.subscribe_key = key.subscribe_key;
@@ -296,8 +309,8 @@ cli.main(function (args, options) {
 
             // checks for the presence of object properties and informs users
             // that they can use relevant args as a shortcut
-            if (self.block) {
-                opts.b = self.block.id;
+            if (self.blockRemote) {
+                opts.b = self.blockRemote.id;
             }
             if (self.key) {
                 opts.k = self.key.id;
@@ -463,6 +476,8 @@ cli.main(function (args, options) {
             cli.info('Reading block.json from ' + blockFile);
             fs.readJson(blockFile, function (err, data) {
 
+                console.log(data)
+
                 if (err) {
 
                     if (self.blockFileRequired) {
@@ -515,7 +530,7 @@ cli.main(function (args, options) {
 
             // looks first in options, then in remote block, then local block
             var givenKey = options.key ||
-                self.block.key_id || self.blockLocal._key_id;
+                self.blockRemote.key_id || self.blockLocal._key_id;
 
             api.request('get', ['api', 'apps'], {
                 qs: {
@@ -590,7 +605,7 @@ cli.main(function (args, options) {
 
         };
 
-        // gets a remote block and sets as self.block
+        // gets a remote block and sets as self.blockRemote
         self.blockGet = function (cb) {
 
             cli.debug('block');
@@ -598,7 +613,18 @@ cli.main(function (args, options) {
             // look for the key in options
             // then remote block, then local block
             var givenBlock = options.block ||
-                self.block.id || self.blockLocal._id;
+                self.blockRemote.id || self.blockLocal._id;
+
+            var createcb = function () {
+
+                blockCreate(self.key,
+                    function (err2, data) {
+                        self.blockRemote = data;
+                        cb(err2);
+                    }
+                );
+
+            };
 
             api.request('get', ['api', 'v1', 'blocks',
                 'key', self.key.id, 'block'], {}, function (err, result) {
@@ -607,7 +633,10 @@ cli.main(function (args, options) {
                         cb(err);
                     } else {
 
-                        if (givenBlock) {
+                        // if we force upsert, forget prompts
+                        if (options.insert) {
+                            createcb();
+                        } else if (givenBlock) {
 
                             // if block is supplied through cli
                             var paramBlock = false;
@@ -623,7 +652,7 @@ cli.main(function (args, options) {
                             if (!paramBlock) {
                                 cb('Invalid block ID');
                             } else {
-                                self.block = paramBlock;
+                                self.blockRemote = paramBlock;
                                 cb(null);
                             }
 
@@ -665,15 +694,10 @@ cli.main(function (args, options) {
 
                                 if (!answers.block) {
 
-                                    blockCreate(self.key,
-                                        function (err2, data) {
-                                            self.block = data;
-                                            cb(err2);
-                                        }
-                                    );
+                                    createcb();
 
                                 } else {
-                                    self.block = answers.block;
+                                    self.blockRemote = answers.block;
                                     cb(null);
                                 }
 
@@ -694,10 +718,15 @@ cli.main(function (args, options) {
 
             cli.debug('blockWrite');
 
+            // if for some reason blockLocal has key_id, remove it
+            if (self.blockLocal.key_id) {
+                delete self.blockLocal.key_id;
+            }
+
             self.blockLocal._key_id = self.key.id;
-            self.blockLocal._id = self.block.id;
-            self.blockLocal.name = self.block.name;
-            self.blockLocal.description = self.block.description;
+            self.blockLocal._id = self.blockRemote.id;
+            self.blockLocal.name = self.blockRemote.name;
+            self.blockLocal.description = self.blockRemote.description;
 
             cli.info('Writing block.json to ' + blockFile);
             fs.outputJson(blockFile, self.blockLocal, { spaces: 4 }, cb);
@@ -710,7 +739,7 @@ cli.main(function (args, options) {
             cli.debug('blockPush');
 
             api.request('put', ['api', 'v1', 'blocks', 'key',
-                self.block.key_id, 'block', self.block.id], {
+                self.blockRemote.key_id, 'block', self.blockRemote.id], {
                     form: self.blockLocal
                 }, function (err) {
                     cb(err ? err.message : null);
@@ -805,7 +834,7 @@ cli.main(function (args, options) {
 
                 var paramEventHandler = false;
 
-                self.block.event_handlers.forEach(function (value, key) {
+                self.blockRemote.event_handlers.forEach(function (value) {
 
                     if (options.eventHandler === value.id) {
                         paramEventHandler = value;
@@ -824,7 +853,7 @@ cli.main(function (args, options) {
 
                 var choices = [];
 
-                self.block.event_handlers.forEach(function (value, key) {
+                self.blockRemote.event_handlers.forEach(function (value) {
 
                     choices.push({
                         name: value.name,
@@ -859,7 +888,7 @@ cli.main(function (args, options) {
                 self.blockLocal.eventHandlers || [];
 
             // for each server event handler
-            async.eachSeries(self.block.event_handlers, function (eh, holla) {
+            async.eachSeries(self.blockRemote.event_handlers, function (eh, holla) {
 
                 cli.info('Working on ' + eh.name);
 
@@ -871,7 +900,7 @@ cli.main(function (args, options) {
 
                 var found = false;
 
-                self.blockLocal.eventHandlers.forEach(function (value, key) {
+                self.blockLocal.eventHandlers.forEach(function (value) {
 
                     // if ids match
                     // overwrite local with what we have on server
@@ -928,7 +957,7 @@ cli.main(function (args, options) {
 
                         var i = 0;
                         self.blockLocal.eventHandlers.forEach(
-                            function (value, key) {
+                            function (value) {
 
                                 choices.push({
                                     name: value.name,
@@ -976,7 +1005,7 @@ cli.main(function (args, options) {
 
             }, function () {
 
-                cli.debug('Writing event handlers to block.json in'
+                cli.debug('Writing event handlers to block.json to '
                     + blockFile);
                 fs.outputJson(blockFile, self.blockLocal, { spaces: 4 }, cb);
 
@@ -993,7 +1022,10 @@ cli.main(function (args, options) {
 
                 self.blockLocal = mergeBlock(self.blockLocal, data);
 
-                cli.debug('Writing block.json in' + blockFile);
+                console.log(self.blockLocal)
+                console.log(data)
+
+                cli.debug('Writing block.json to ' + blockFile);
                 fs.outputJson(blockFile, self.blockLocal, { spaces: 4 }, cb);
 
             });
@@ -1045,7 +1077,7 @@ cli.main(function (args, options) {
 
                     // if id exists, update (put)
                     api.request('put', ['api', 'v1', 'blocks', 'key',
-                        self.block.key_id, 'event_handler', id], {
+                        self.blockRemote.key_id, 'event_handler', id], {
                             form: data
                         }, done);
 
@@ -1053,12 +1085,12 @@ cli.main(function (args, options) {
 
                     // of id does not exist (update)
 
-                    data.block_id = self.block.id;
-                    data.key_id = self.block.key_id;
+                    data.block_id = self.blockRemote.id;
+                    data.key_id = self.blockRemote.key_id;
                     data.type = 'js';
 
                     api.request('post', ['api', 'v1', 'blocks', 'key',
-                        self.block.key_id, 'event_handler'], {
+                        self.blockRemote.key_id, 'event_handler'], {
                             form: data
                         }, done);
 
@@ -1141,7 +1173,7 @@ cli.main(function (args, options) {
 
         // this is the magic function that creates a function queue
         // using the supplied CLI command
-        routes[cli.command].functions.forEach(function (value, key) {
+        routes[cli.command].functions.forEach(function (value) {
             tasks.push(self[value]);
         });
 
