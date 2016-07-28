@@ -273,32 +273,6 @@ cli.main(function (args, options) {
 
     };
 
-    var eventHandlerCreate = function (block, cb) {
-
-        updateEventHandler({}, true, function (eh) {
-
-            eh.block_id = block.id;
-            eh.key_id = block.key_id;
-
-            eh.type = 'js';
-            eh.code = '// code goes here';
-
-            api.request('post', ['api', 'v1', 'blocks', 'key',
-                block.key_id, 'event_handler'], {
-                    form: eh
-                }, function (err) {
-
-                    cli.ok('Event Handler Created');
-                    cb(err ? err.message : null);
-
-                }
-            );
-
-        });
-
-
-    };
-
     // OK: Use this handy command next time:
     // OK: pubnub-cli push -b 1130 -k 145183
     var explain = function () {
@@ -884,7 +858,7 @@ cli.main(function (args, options) {
             self.blockLocal.event_handlers || [];
 
         // for each server event handler
-        async.eachSeries(self.blockRemote.event_handlers, 
+        async.eachSeries(self.blockRemote.event_handlers,
             function (eh, holla) {
 
                 cli.info('Working on ' + eh.name);
