@@ -15,7 +15,7 @@ cli.parse({
     block: ['b', 'Block ID', 'int'],
     key: ['k', 'Subscribe Key ID', 'int'],
     file: ['f', 'A block file', 'path'],
-    env: ['e', 'An environment [bronze, silver, gold]', 'string'],
+    env: ['e', 'An environment [bronze, silver, gold, prod]', 'string'],
     email: ['m', 'Email', 'string'],
     insert: ['n', 'Insert Mode. Create new blocks and skip prompts.', true,
         false],
@@ -87,7 +87,7 @@ cli.main(function (args, options) {
     self.blockFileRequired = false;
 
     // specify the required environment
-    options.env = options.env || 'gold';
+    options.env = options.env || 'prod';
 
     self.env = envs[options.env];   // map the env string to an object
 
@@ -884,7 +884,7 @@ cli.main(function (args, options) {
             self.blockLocal.event_handlers || [];
 
         // for each server event handler
-        async.eachSeries(self.blockRemote.event_handlers, 
+        async.eachSeries(self.blockRemote.event_handlers,
             function (eh, holla) {
 
                 cli.info('Working on ' + eh.name);
