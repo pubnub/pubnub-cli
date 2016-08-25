@@ -2,6 +2,8 @@ var envs = require('./envs');
 var config = require('./migration_config');
 var async = require('async');
 
+var PUBNUB = require('pubnub');
+
 var Mocha = require('mocha'),
     fs = require('fs'),
     path = require('path');
@@ -141,25 +143,344 @@ function printConfig(cb) {
     cb();
 }
 
-function deleteBlocks(cb) {
-    cb();
-}
+function deleteToBlocks(cb) {
+    console.log('Delete To Blocks');
 
-function pushBlocks(config, cb) {
-    /*
-    config.from.blocks.forEach(function(block){
-        apiTo.request('post', ['api', 'v1', 'blocks', 'key',
+    var total = config.to.blocks.length;
+    console.log(total);
+
+    if (total == 0) {
+        cb();
+        return;
+    }
+
+    function done(e) {
+        if (e) {
+            cb(e);
+            return;
+        }
+        if (--total == 0) cb();
+    }
+    
+
+
+    // after it starts
+    // we need to subscribe to the channel to see output
+    var pubnub = PUBNUB.init({
+        subscribe_key: config.to.subscribe_key,
+        publish_key: config.to.publish_key,
+        origin: envs[config.to.key].origin
+    });
+
+    var channels = [];
+
+    config.to.blocks.forEach(function(block){
+        channels.push('blocks-state-'
+            + config.to.subscribe_key_object.properties.realtime_analytics_channel
+            + '.' + block.id);
+    });
+
+        /*
+        apiTo.request('delete', ['api', 'v1', 'blocks', 'key',
             config.from.subscribe_key_object.id, 'block', 
-            block.blockRemote.id], {
-                form: self.blockLocal
+            block.id], {
+
             }, function (err) {
-                cb(err ? err.message : null);
+                console.log('Deleted ' + JSON.stringify(err));
+                done(err ? err.message : null);
             }
         );
-    });
-*/
-    cb();
+        */
+
+
+        
+
+        // the channel is crazy
+        //var chan = 'blocks-state-'
+        //    + config.to.subscribe_key_object.properties.realtime_analytics_channel
+        //    + '.' + block.id;
+
+
+        // subscribe to status channel
+    pubnub.subscribe({
+        channel: channels,
+        connect: function(c) {
+            //console.log('Connect to  ' + c);  
+            var blockId = c.split('.')[1];
+
+            apiTo.request('get', ['api', 'v1', 'blocks', 'key', 
+                config.to.subscribe_key_object.id, 'block', blockId], {
+
+            }, function (err, data) {
+               // console.log(JSON.stringify(data));
+
+
+                    
+                    if (err) {
+                        done(err);
+                    }
+
+                    else {
+                        var b = data.payload[0];
+
+
+                        if (b.state === 'stopped') {
+                            apiTo.request('delete', ['api', 'v1', 'blocks', 'key',
+                                config.to.subscribe_key_object.id, 'block', 
+                                b.id], {
+                            }, function (err, data) {
+                                console.log('Deleted ' + JSON.stringify(err));
+                                console.log(JSON.stringify(data));
+                                //done(err ? err.message : null); 
+                                done();
+                            });
+                        } else {
+                            apiTo.request('post', ['api', 'v1', 'blocks', 'key',
+                                config.to.subscribe_key_object.id, 'block',
+                                blockId, 'stop'], {
+
+                                }, function (err) {
+                                    console.log('stopped ' + JSON.stringify(err));
+                                    //done(err ? err.message : null);
+                                    /* if (err) {
+                                        apiTo.request('delete', ['api', 'v1', 'blocks', 'key',
+                                            config.to.subscribe_key_object.id, 'block', 
+                                            blockId], {
+                                        }, function (err) {
+                                            console.log('Deleted');
+                                            done(err ? err.message : null);
+                                        });
+                                    } */
+                            });
+                        }
+                    }   
+
+                }
+            );
+            //console.log(blockId);
+
+            /*
+            apiTo.request('post', ['api', 'v1', 'blocks', 'key',
+                config.to.subscribe_key_object.id, 'block',
+                blockId, 'stop'], {
+
+                }, function (err) {
+                    console.log('stopped ' + JSON.stringify(err));
+                    //done(err ? err.message : null);
+                    if (err) {
+                        apiTo.request('delete', ['api', 'v1', 'blocks', 'key',
+                            config.to.subscribe_key_object.id, 'block', 
+                            blockId], {
+                        }, function (err) {
+                            console.log('Deleted');
+                            done(err ? err.message : null);
+                    }
+                );
+                
+
+                    }
+                }
+            );
+            */
+            
+        },
+
+        message: function (m) {
+
+            if (m.state === 'running') {
+                console.log('running');
+            } else if (m.state === 'stopped') {
+
+                console.log('Block State: ' + m.state);
+                
+                apiTo.request('delete', ['api', 'v1', 'blocks', 'key',
+                    config.to.subscribe_key_object.id, 'block', 
+                    m.block_id], {
+
+                    }, function (err) {
+                        console.log('Deleted');
+                        done(err ? err.message : null);
+                    }
+                );
+                
+
+            } else {
+                if (m.state !== 'pending') {
+                    console.log('Block State: ' + m.state + '...');
+                }
+            }
+
+        },
+        error: function (error) {
+            // Handle error here
+            cb(JSON.stringify(error));
+        }
+    }); 
+    //});
 }
+
+function pushBlocks(cb) {
+
+    console.log('Push Blocks');
+    var total = config.from.blocks.length;
+
+    function done(err) {
+        if (--total == 0) cb(err);
+        if (err) cb(err);   
+    }
+    
+    config.from.blocks.forEach(function(block){
+
+        var b =   { 
+            description: block.description,
+            name: block.name,
+            key_id: config.to.subscribe_key_object.id
+         };
+
+        apiTo.request('post', ['api', 'v1', 'blocks', 'key',
+            config.to.subscribe_key_object.id, 'block'], {
+                form: b
+            }, function (err, data) {
+                console.log(JSON.stringify(data));
+
+
+                block.event_handlers.forEach(function(eh){
+                    var handler = {
+                        "name": eh.name,
+                        "type": eh.type || 'js',
+                        "description": eh.description || "",
+                        "event": eh.event,
+                        "channels": eh.channels,
+                        "output": eh.output ,
+                        "log_level": eh.log_level || "debug",
+                        "key_id": config.to.subscribe_key_object.id,
+                        "block_id": data.payload.id,
+                        "code": eh.code
+
+                    };
+
+                    apiTo.request('post', ['api', 'v1', 'blocks', 'key',
+                        config.to.subscribe_key_object.id, 'event_handler'], {
+                            form: handler
+                        }, function(err) {
+                            done(err);
+                        });
+                });
+                    
+            });
+
+ 
+    });
+
+}
+
+
+function startToBlocks(cb) {
+    console.log('Start To Blocks');
+
+    var total = config.to.blocks.length;
+    console.log(total);
+
+    if (total == 0) {
+        cb();
+        return;
+    }
+
+    function done(e) {
+        if (e) {
+            cb(e);
+            return;
+        }
+        if (--total == 0) cb();
+    }
+    
+
+
+    // after it starts
+    // we need to subscribe to the channel to see output
+    var pubnub = PUBNUB.init({
+        subscribe_key: config.to.subscribe_key,
+        publish_key: config.to.publish_key,
+        origin: envs[config.to.key].origin
+    });
+
+    var channels = [];
+
+    config.to.blocks.forEach(function(block){
+        channels.push('blocks-state-'
+            + config.to.subscribe_key_object.properties.realtime_analytics_channel
+            + '.' + block.id);
+    });
+
+
+    // subscribe to status channel
+    pubnub.subscribe({
+        channel: channels,
+        connect: function(c) {
+            //console.log('Connect to  ' + c);  
+            var blockId = c.split('.')[1];
+
+            apiTo.request('get', ['api', 'v1', 'blocks', 'key', 
+                config.to.subscribe_key_object.id, 'block', blockId], {
+
+            }, function (err, data) {
+               // console.log(JSON.stringify(data));
+
+
+                    
+                    if (err) {
+                        done(err);
+                    }
+
+                    else {
+                        var b = data.payload[0];
+
+
+                        if (b.state === 'stopped') {
+                            apiTo.request('post', ['api', 'v1', 'blocks', 'key',
+                                config.to.subscribe_key_object.id, 'block', 
+                                b.id, 'start'], {
+                            }, function (err, data) {
+                                console.log('Deleted ' + JSON.stringify(err));
+                                console.log(JSON.stringify(data));
+                                //done(err ? err.message : null); 
+                                //done();
+                            });
+                        } else if (b.state === 'running') {
+                            done();
+                        }
+                    }   
+
+                }
+            );
+            
+        },
+
+        message: function (m) {
+
+            if (m.state === 'running') {
+                console.log('running');
+                done();
+            } else if (m.state === 'stopped') {
+                console.log('Block State: ' + m.state);
+
+            } else {
+                if (m.state !== 'pending') {
+                    console.log('Block State: ' + m.state + '...');
+                }
+            }
+
+        },
+        error: function (error) {
+            // Handle error here
+            cb(JSON.stringify(error));
+        }
+    }); 
+    //});
+}
+
+
+
 
 function runTests(cb) {
 
@@ -268,19 +589,20 @@ function runTests(cb) {
 
 async.series([
     initFrom,
-    //initTo,
+    initTo,
     getFromKeyId,
-    //getToKeyId,
+    getToKeyId,
     getFromBlocks,
-    //getToBlocks,
-    //deleteToBlocks,
-    //pushBlocks, 
-    //getToBlocks, */
+    getToBlocks,
+    deleteToBlocks,
+    pushBlocks, 
+    getToBlocks,
+    startToBlocks
     runTests//,
     //printConfig
 ], function (err) {
     if (err) {
-
+        console.log(JSON.stringify(err));
         // display our error if one is thrown
         if (err.code) {
 

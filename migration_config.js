@@ -6,7 +6,7 @@ var from = {
 };
 
 var to = {
-    key: 'silver',
+    key: 'bronze',
     email: 'admin@example.com',
     password: 'admin',
     subscribe_key: 'demo-36'
