@@ -16,27 +16,45 @@
 
 
 
-    var apiFrom = require('./lib/pubnub-api')({
-        debug: true,
-        endpoint: envs[config.from.key].host
-    });
+    function log(msg) {
+        if (process.env.DEBUG) console.log(msg);
+    }
 
 
-    var apiTo = require('./lib/pubnub-api')({
-        debug: true,
-        endpoint: envs[config.to.key].host
-    });
+    var api = {
+        from : require('./lib/pubnub-api')({
+            debug: process.env.DEBUG_HTTP,
+            endpoint: envs[config.from.key].host
+        }),
+        to : require('./lib/pubnub-api')({
+            debug: process.env.DEBUG_HTTP,
+            endpoint: envs[config.to.key].host
+        })
+    };
+
+
+    var skipList = [
+        'anti-spam',
+        'hangman',
+        'fire-sensor-alert',
+        'email-sendgrid',
+        'hello-world',
+        'text-to-speech',
+        'vote-counter'
+    ];
+
+    var includeList = ['bad-words-filtering'];
 
 
     function initFrom(cb) {
 
-        apiFrom.init({
+        api.from.init({
             email: config.from.email,
             password: config.from.password
 
         }, function (err, body) {
 
-            console.log('Logging In... Done!');
+            log('Logging In... Done!');
 
             if (err) {
                 cb(err);
@@ -50,13 +68,13 @@
 
     function initTo(cb) {
 
-        apiTo.init({
+        api.to.init({
             email: config.to.email,
             password: config.to.password
 
         }, function (err, body) {
 
-            console.log('Logging in ');
+            log('Logging in ');
             if (err) {
                 cb(err);
             } else {
@@ -102,11 +120,11 @@
     }
 
     function getFromKeyId(cb) {
-        getKeyId(apiFrom, config.from, cb);
+        getKeyId(api.from, config.from, cb);
     }
 
     function getToKeyId(cb) {
-        getKeyId(apiTo, config.to, cb);
+        getKeyId(api.to, config.to, cb);
     }
 
 
@@ -130,20 +148,20 @@
     }
 
     function getFromBlocks(cb) {
-        getBlocks(apiFrom, config.from, cb);
+        getBlocks(api.from, config.from, cb);
     }
 
     function getToBlocks(cb) {
-        getBlocks(apiTo, config.to, cb);
+        getBlocks(api.to, config.to, cb);
     }
 
     function printConfig(cb) {
-        console.log(JSON.stringify(config, null, 2));
+        log(JSON.stringify(config, null, 2));
         cb();
     }
 
     function deleteToBlocks(cb) {
-        console.log('Delete To Blocks');
+        log('Delete To Blocks');
 
         var fromChannels = [];
         var fromBlockNames = [];
@@ -166,12 +184,12 @@
 
         var channels = [];
 
-        console.log(fromChannels);
+        log(fromChannels);
 
         config.to.blocks.forEach(function(block){
 
             block.event_handlers.forEach(function(eh){
-                console.log(eh.channels);
+                log(eh.channels);
                 if (fromChannels.indexOf(eh.channels) >= 0) {
 
                     var channel = 'blocks-state-'
@@ -193,7 +211,7 @@
         });
 
         var total = channels.length;
-        console.log(total);
+        log(total);
 
         if (total == 0) {
             cb();
@@ -216,11 +234,11 @@
 
                 var blockId = c.split('.')[1];
 
-                apiTo.request('get', ['api', 'v1', 'blocks', 'key', 
+                api.to.request('get', ['api', 'v1', 'blocks', 'key', 
                     config.to.subscribe_key_object.id, 'block', blockId], {
 
                 }, function (err, data) {
-                   // console.log(JSON.stringify(data));
+                   // log(JSON.stringify(data));
 
 
                     
@@ -233,22 +251,22 @@
 
 
                         if (b.state === 'stopped') {
-                            apiTo.request('delete', ['api', 'v1', 'blocks', 'key',
+                            api.to.request('delete', ['api', 'v1', 'blocks', 'key',
                                 config.to.subscribe_key_object.id, 'block', 
                                 b.id], {
                             }, function (err, data) {
-                                //console.log('Deleted ' + JSON.stringify(err));
-                                //console.log(JSON.stringify(data));
-                                //done(err ? err.message : null); 
-                                done();
+                                //log('Deleted ' + JSON.stringify(err));
+                                //log(JSON.stringify(data));
+                                done(err ? err.message : null); 
+                                //done();
                             });
                         } else {
-                            apiTo.request('post', ['api', 'v1', 'blocks', 'key',
+                            api.to.request('post', ['api', 'v1', 'blocks', 'key',
                                 config.to.subscribe_key_object.id, 'block',
                                 blockId, 'stop'], {
 
                                 }, function (err) {
-                                    //console.log('stopped ' + JSON.stringify(err));
+                                    //log('stopped ' + JSON.stringify(err));
                             });
                         }
                     }   
@@ -265,12 +283,13 @@
 
                     //console.log('Block State: ' + m.state);
                     
-                    apiTo.request('delete', ['api', 'v1', 'blocks', 'key',
+                    api.to.request('delete', ['api', 'v1', 'blocks', 'key',
                         config.to.subscribe_key_object.id, 'block', 
                         m.block_id], {
 
-                        }, function (err) {
-                            console.log('Deleted');
+                        }, function (err, data) {
+                            log('Deleted');
+                            if (err) log(JSON.stringify(data));
                             done(err ? err.message : null);
                         }
                     );
@@ -294,12 +313,16 @@
 
     function pushBlocks(cb) {
 
-        console.log('Push Blocks');
+        log('Push Blocks');
         var total = config.from.blocks.length;
 
         function done(err) {
+            if (err) {
+                cb(err); 
+                return;
+            }
             if (--total == 0) cb(err);
-            if (err) cb(err);   
+  
         }
         
         config.from.blocks.forEach(function(block){
@@ -310,11 +333,11 @@
                 key_id: config.to.subscribe_key_object.id
              };
 
-            apiTo.request('post', ['api', 'v1', 'blocks', 'key',
+            api.to.request('post', ['api', 'v1', 'blocks', 'key',
                 config.to.subscribe_key_object.id, 'block'], {
                     form: b
                 }, function (err, data) {
-                    //console.log(JSON.stringify(data));
+                    //log(JSON.stringify(data));
 
                     if (!err) {
                         block.event_handlers.forEach(function(eh){
@@ -332,15 +355,16 @@
 
                             };
 
-                            apiTo.request('post', ['api', 'v1', 'blocks', 'key',
+                            api.to.request('post', ['api', 'v1', 'blocks', 'key',
                                 config.to.subscribe_key_object.id, 'event_handler'], {
                                     form: handler
-                                }, function(err) {
+                                }, function(err, data) {
+                                    if (err) console.log(err + ' : ' + JSON.stringify(data));
                                     done(err);
                                 });
                         });
                     } else {
-                        cb(err);
+                        done(err);
                     }
                         
                 });
@@ -352,9 +376,21 @@
 
 
     function startToBlocks(cb) {
-        console.log('Start To Blocks');
+        log('Start To Blocks');
 
         var total = config.to.blocks.length;
+
+        var fromChannels = [];
+        var fromBlockNames = [];
+        config.from.blocks.forEach(function(block){
+            fromBlockNames.push(block.name);
+            block.event_handlers.forEach(function(handler){
+                fromChannels.push(handler.channels);
+            });
+        });
+
+        var blocksToStart = {};
+
 
 
         if (total == 0) {
@@ -362,12 +398,15 @@
             return;
         }
 
-        function done(e) {
+        function done(e, id) {
+            console.log(e + ' : ' + id);
+            delete blocksToStart[id];
+            console.log(JSON.stringify(blocksToStart));
             if (e) {
                 cb(e);
                 return;
             }
-            if (--total == 0) cb();
+            if (blocksToStart.length == 0) cb();
         }
         
 
@@ -382,10 +421,40 @@
 
         var channels = [];
 
-            config.to.blocks.forEach(function(block){
+
+        /*
+        config.to.blocks.forEach(function(block){
             channels.push('blocks-state-'
                 + config.to.subscribe_key_object.properties.realtime_analytics_channel
                 + '.' + block.id);
+        });
+        */
+
+        config.to.blocks.forEach(function(block){
+
+            block.event_handlers.forEach(function(eh){
+                log(eh.channels);
+                if (fromChannels.indexOf(eh.channels) >= 0) {
+
+                    var channel = 'blocks-state-'
+                        + config.to.subscribe_key_object.properties.realtime_analytics_channel
+                        + '.' + block.id;
+
+                    if (channels.indexOf(channel) < 0)  channels.push(channel);
+
+                    blocksToStart[block.id] = 1;
+                }
+            })
+
+            if (fromBlockNames.indexOf(block.name) >= 0) {
+                var channel = 'blocks-state-'
+                        + config.to.subscribe_key_object.properties.realtime_analytics_channel
+                        + '.' + block.id;
+
+                if (channels.indexOf(channel) < 0)  channels.push(channel);
+                blocksToStart[block.id] = 1;
+            }
+
         });
 
 
@@ -393,14 +462,14 @@
         pubnub.subscribe({
             channel: channels,
             connect: function(c) {
-                //console.log('Connect to  ' + c);  
+                //log('Connect to  ' + c);  
                 var blockId = c.split('.')[1];
 
-                apiTo.request('get', ['api', 'v1', 'blocks', 'key', 
+                api.to.request('get', ['api', 'v1', 'blocks', 'key', 
                     config.to.subscribe_key_object.id, 'block', blockId], {
 
                 }, function (err, data) {
-                   // console.log(JSON.stringify(data));
+                   // log(JSON.stringify(data));
 
 
                         
@@ -410,18 +479,21 @@
 
                         else {
                             var b = data.payload[0];
-
+                            console.log(JSON.stringify(b));
+                            if (b.event_handlers.length == 0) console.log(JSON.stringify(b));
 
                             if (b.state === 'stopped') {
-                                apiTo.request('post', ['api', 'v1', 'blocks', 'key',
+                                api.to.request('post', ['api', 'v1', 'blocks', 'key',
                                     config.to.subscribe_key_object.id, 'block', 
                                     b.id, 'start'], {
                                 }, function (err, data) {
                                     //done(err ? err.message : null); 
                                     //done();
+                                    console.log(err);
+                                    console.log(JSON.stringify(data));
                                 });
                             } else if (b.state === 'running') {
-                                done();
+                                done(null, b.id);
                             }
                         }   
 
@@ -433,14 +505,15 @@
             message: function (m) {
 
                 if (m.state === 'running') {
-                    //console.log('running');
-                    done();
+                    //log('running');
+                    console.log(JSON.stringify(m));
+                    done(null, m.block_id);
                 } else if (m.state === 'stopped') {
-                    //console.log('Block State: ' + m.state);
+                    //log('Block State: ' + m.state);
 
                 } else {
                     if (m.state !== 'pending') {
-                        //console.log('Block State: ' + m.state + '...');
+                        //log('Block State: ' + m.state + '...');
                     }
                 }
 
@@ -464,9 +537,8 @@
         config.from.blocks.forEach(function(block){
             blockNames.push(block.name);
         });
-        //console.log(blockNames);
+        //log(blockNames);
 
-        var skip = ['email-sendgrid', 'hello-world', 'text-to-speech']
 
         //config.to.blocks   for now read  config.from
 
@@ -475,9 +547,9 @@
                 channels.push(handler.channels);
             });
         });
-        //console.log(channels);
+        //log(channels);
 
-        //console.log(testDir);
+        //log(testDir);
         // Add each .js file to the mocha instance
         var blockDirs = fs.readdirSync(testDir);
 
@@ -492,10 +564,13 @@
                             .readFileSync(blockJson);
 
 
-            return (blockNames.indexOf(block.name) >= 0 && ( file[0] !== '.' && skip.indexOf(file) < 0));
+            if (includeList && includeList.length > 0) {
+                return (includeList.indexOf(file) >= 0);
+            }
+            return (blockNames.indexOf(block.name) >= 0 &&  file[0] !== '.' && skipList.indexOf(file) < 0);
 
         }).forEach(function(blockDir){
-            //console.log(path.join(testDir, blockDir , 'test.js'));
+            //log(path.join(testDir, blockDir , 'test.js'));
             mocha.addFile(
                 path.join(testDir, blockDir , 'test.js')
             );
@@ -503,15 +578,15 @@
         });
 
 
-        console.log('running tests');
+        log('running tests');
         // Run the tests.
 
            
 
         mocha.reporter('spec').run(function(failures){
 
-          console.log(failures);
-               //cb();
+          process.exit(failures);
+          //cb && cb(failures);
 
         });
 
@@ -520,38 +595,7 @@
     }
 
 
-    function prepareTests(cb) {
-        var blockNames = [];
-        config.from.blocks.forEach(function(block){
-            blockNames.push(block.name);
-        });
-        //console.log(blockNames);
-
-                // Add each .js file to the mocha instance
-        fs.readdirSync(testDir).filter(function(file){
-            //console.log(file);
-
-            var blockJson = testDir + '/' + file + '/' + 'block.json';
-            //console.log(blockJson);
-            
-            var found = false;
-
-            var block = require('jsonfile')
-                            .readFileSync(blockJson);
-
-            //console.log(block.name);
-
-            return (blockNames.indexOf(block.name) >= 0);
-            // Only keep the .js files
-            //return ( file[0] !== '.' && skip.indexOf(file) < 0);
-
-        }).forEach(function(blockDir){
-            console.log(blockDir);
-        });
-
-        cb();
-    }
-
+    /*
 
     async.series([
 
@@ -584,3 +628,36 @@
             process.exit(0);
         }
     });
+    */
+
+
+    void function loop() {
+      async.series([
+        initFrom, 
+        initTo,
+        getFromKeyId,
+        getToKeyId,
+        getFromBlocks,
+        getToBlocks,
+        deleteToBlocks,
+        pushBlocks, 
+        getToBlocks,
+        startToBlocks
+      ], function(error, results) {
+          console.log(JSON.stringify(error));
+          console.log(JSON.stringify(results));
+          if (error) {
+            if (error.message && error.message.search(/ESOCKETTIMEDOUT|ETIMEDOUT/) == -1) {
+
+            } else {
+                console.log('DO LOOP');
+                loop();
+            }
+          } else {
+
+            runTests();
+
+          }
+
+      });
+    }();
