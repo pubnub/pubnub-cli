@@ -15,6 +15,12 @@
     var testDir = process.argv[2] || '../blocks-catalog/catalog';
 
 
+    function merror(msg, cb, param) {
+        console.error(msg);
+        process.exit(1);
+        //cb(param);
+    }
+
 
     function log(msg) {
         if (process.env.DEBUG) console.log(msg);
@@ -40,10 +46,11 @@
         'email-sendgrid',
         'hello-world',
         'text-to-speech',
-        'vote-counter'
+        'vote-counter',
+        'kvtest'
     ];
 
-    var includeList = ['bad-words-filtering'];
+    var includeList = [];
 
 
     function initFrom(cb) {
@@ -165,6 +172,7 @@
 
         var fromChannels = [];
         var fromBlockNames = [];
+
         config.from.blocks.forEach(function(block){
             fromBlockNames.push(block.name);
             block.event_handlers.forEach(function(handler){
@@ -391,7 +399,7 @@
 
         var blocksToStart = {};
 
-
+        var poll;
 
         if (total == 0) {
             cb();
@@ -400,13 +408,28 @@
 
         function done(e, id) {
             console.log(e + ' : ' + id);
-            delete blocksToStart[id];
+
+            if (blocksToStart[id]) {
+
+                blocksToStart[id] -= 1;
+                if (blocksToStart[id] == 0) {
+                    delete blocksToStart[id];
+                }
+            }
+
             console.log(JSON.stringify(blocksToStart));
             if (e) {
-                cb(e);
-                return;
+                cb && cb(e);
+                cb = null;
+                poll && clearInterval(poll);
             }
-            if (blocksToStart.length == 0) cb();
+
+            if (Object.keys(blocksToStart).length == 0) {
+                poll && clearInterval(poll);
+                cb && cb();
+                cb =  null;
+
+            }
         }
         
 
@@ -422,18 +445,12 @@
         var channels = [];
 
 
-        /*
-        config.to.blocks.forEach(function(block){
-            channels.push('blocks-state-'
-                + config.to.subscribe_key_object.properties.realtime_analytics_channel
-                + '.' + block.id);
-        });
-        */
 
         config.to.blocks.forEach(function(block){
 
             block.event_handlers.forEach(function(eh){
-                log(eh.channels);
+                console.log(fromChannels);
+                console.log(eh.channels);
                 if (fromChannels.indexOf(eh.channels) >= 0) {
 
                     var channel = 'blocks-state-'
@@ -442,7 +459,12 @@
 
                     if (channels.indexOf(channel) < 0)  channels.push(channel);
 
-                    blocksToStart[block.id] = 1;
+                    if (!blocksToStart[block.id]) {
+                        blocksToStart[block.id] = 0;
+                    }
+                    blocksToStart[block.id] += 1;
+
+                    console.log(JSON.stringify(blocksToStart));
                 }
             })
 
@@ -452,10 +474,40 @@
                         + '.' + block.id;
 
                 if (channels.indexOf(channel) < 0)  channels.push(channel);
-                blocksToStart[block.id] = 1;
+
             }
 
         });
+
+
+        setTimeout(function(){
+            poll = setInterval(function(){
+                Object.keys(blocksToStart).forEach(function(block_id){
+                    api.to.request('get', ['api', 'v1', 'blocks', 'key',
+                        config.to.subscribe_key_object.id, 'block', 
+                        block_id], {
+                    }, function (err, data) {
+                        //done(err ? err.message : null); 
+                        //done();
+                        if (err) return;
+
+                        var b = data.payload[0];
+                        b.event_handlers.forEach(function(eh){
+                            console.log(eh.id + ' : ' + eh.block_id + ' : ' + eh.state + ' : ' + eh.name);
+                            if (eh.state === 'running') {
+                                 done(null, block_id);
+                            }
+                        });
+
+                    });
+                });
+
+            }, 2000);
+
+
+        }, 10000);
+
+
 
 
         // subscribe to status channel
@@ -474,10 +526,10 @@
 
                         
                         if (err) {
-                            done(err);
-                        }
+                          
+                            merror( err + ' : ' + JSON.stringify(data) , done, err);
 
-                        else {
+                        } else {
                             var b = data.payload[0];
                             console.log(JSON.stringify(b));
                             if (b.event_handlers.length == 0) console.log(JSON.stringify(b));
@@ -520,7 +572,7 @@
             },
             error: function (error) {
                 // Handle error here
-                cb(JSON.stringify(error));
+                merror(JSON.stringify(error), cb, JSON.stringify(error));
             }
         }); 
         //});
@@ -537,20 +589,16 @@
         config.from.blocks.forEach(function(block){
             blockNames.push(block.name);
         });
-        //log(blockNames);
 
-
-        //config.to.blocks   for now read  config.from
 
         config.from.blocks.forEach(function(block){
             block.event_handlers.forEach(function(handler){
                 channels.push(handler.channels);
             });
         });
-        //log(channels);
 
-        //log(testDir);
-        // Add each .js file to the mocha instance
+
+
         var blockDirs = fs.readdirSync(testDir);
 
 
@@ -564,13 +612,17 @@
                             .readFileSync(blockJson);
 
 
+            // if include list is enabled, run only tests on include list
             if (includeList && includeList.length > 0) {
                 return (includeList.indexOf(file) >= 0);
             }
+
+            // exclude blocks on exclude list
+
             return (blockNames.indexOf(block.name) >= 0 &&  file[0] !== '.' && skipList.indexOf(file) < 0);
 
         }).forEach(function(blockDir){
-            //log(path.join(testDir, blockDir , 'test.js'));
+
             mocha.addFile(
                 path.join(testDir, blockDir , 'test.js')
             );
@@ -579,14 +631,11 @@
 
 
         log('running tests');
-        // Run the tests.
-
-           
 
         mocha.reporter('spec').run(function(failures){
 
           process.exit(failures);
-          //cb && cb(failures);
+
 
         });
 
