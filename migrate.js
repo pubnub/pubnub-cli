@@ -570,7 +570,7 @@
         deleteToBlocks,
         pushBlocks, 
         getToBlocks,
-        startToBlocks
+        startToBlocks,
         runTests
       ], function(error, results) {
 
