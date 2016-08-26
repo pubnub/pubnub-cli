@@ -145,8 +145,55 @@
     function deleteToBlocks(cb) {
         console.log('Delete To Blocks');
 
-        var total = config.to.blocks.length;
-        //console.log(total);
+        var fromChannels = [];
+        var fromBlockNames = [];
+        config.from.blocks.forEach(function(block){
+            fromBlockNames.push(block.name);
+            block.event_handlers.forEach(function(handler){
+                fromChannels.push(handler.channels);
+            });
+        });
+
+
+        
+        // after it starts
+        // we need to subscribe to the channel to see output
+        var pubnub = PUBNUB.init({
+            subscribe_key: config.to.subscribe_key,
+            publish_key: config.to.publish_key,
+            origin: envs[config.to.key].origin
+        });
+
+        var channels = [];
+
+        console.log(fromChannels);
+
+        config.to.blocks.forEach(function(block){
+
+            block.event_handlers.forEach(function(eh){
+                console.log(eh.channels);
+                if (fromChannels.indexOf(eh.channels) >= 0) {
+
+                    var channel = 'blocks-state-'
+                        + config.to.subscribe_key_object.properties.realtime_analytics_channel
+                        + '.' + block.id;
+
+                    if (channels.indexOf(channel) < 0)  channels.push(channel);   
+                }
+            })
+
+            if (fromBlockNames.indexOf(block.name) >= 0) {
+                var channel = 'blocks-state-'
+                        + config.to.subscribe_key_object.properties.realtime_analytics_channel
+                        + '.' + block.id;
+
+                if (channels.indexOf(channel) < 0)  channels.push(channel); 
+            }
+
+        });
+
+        var total = channels.length;
+        console.log(total);
 
         if (total == 0) {
             cb();
@@ -160,24 +207,8 @@
             }
             if (--total == 0) cb();
         }
+
         
-        // after it starts
-        // we need to subscribe to the channel to see output
-        var pubnub = PUBNUB.init({
-            subscribe_key: config.to.subscribe_key,
-            publish_key: config.to.publish_key,
-            origin: envs[config.to.key].origin
-        });
-
-        var channels = [];
-
-        config.to.blocks.forEach(function(block){
-            channels.push('blocks-state-'
-                + config.to.subscribe_key_object.properties.realtime_analytics_channel
-                + '.' + block.id);
-        });
-
-
         // subscribe to status channel
         pubnub.subscribe({
             channel: channels,
@@ -257,6 +288,7 @@
                 cb(JSON.stringify(error));
             }
         }); 
+        
         //});
     }
 
@@ -533,7 +565,7 @@
         pushBlocks, 
         getToBlocks,
         startToBlocks, 
-        //prepareTests
+        //prepareTests,
         runTests//,
         //printConfig
     ], function (err) {
