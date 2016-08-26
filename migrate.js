@@ -1,6 +1,8 @@
     var envs = require('./envs'); 
-    var config = require('./migration_config');
+    var config = require(process.env.CONFIG || './migration_config');
     var async = require('async');
+
+    process.env.ENV = config.to.key
 
     var PUBNUB = require('pubnub');
 
@@ -12,14 +14,7 @@
     // Instantiate a Mocha instance.
     var mocha = new Mocha();
 
-    var testDir = process.argv[2] || '../blocks-catalog/catalog';
-
-
-    function merror(msg, cb, param) {
-        console.error(msg);
-        process.exit(1);
-        //cb(param);
-    }
+    var testDir = process.env.CATALOG_DIR || '../blocks-catalog/catalog';
 
 
     function log(msg) {
@@ -46,11 +41,11 @@
         'email-sendgrid',
         'hello-world',
         'text-to-speech',
-        'vote-counter',
-        'kvtest'
+        'vote-counter'
     ];
 
     var includeList = [];
+
 
 
     function initFrom(cb) {
@@ -167,8 +162,9 @@
         cb();
     }
 
-    function deleteToBlocks(cb) {
-        log('Delete To Blocks');
+
+    function getRelevantToBlocks() {
+
 
         var fromChannels = [];
         var fromBlockNames = [];
@@ -181,142 +177,152 @@
         });
 
 
-        
-        // after it starts
-        // we need to subscribe to the channel to see output
-        var pubnub = PUBNUB.init({
-            subscribe_key: config.to.subscribe_key,
-            publish_key: config.to.publish_key,
-            origin: envs[config.to.key].origin
-        });
+        var blocks = {};
 
-        var channels = [];
+        function getEhIds(block) {
+            var r = {};
+            block.event_handlers.forEach(function(eh){
+                r[eh.id] = eh.name
+            });
+            return r;
+        }
 
-        log(fromChannels);
 
         config.to.blocks.forEach(function(block){
 
             block.event_handlers.forEach(function(eh){
-                log(eh.channels);
+
                 if (fromChannels.indexOf(eh.channels) >= 0) {
 
-                    var channel = 'blocks-state-'
-                        + config.to.subscribe_key_object.properties.realtime_analytics_channel
-                        + '.' + block.id;
-
-                    if (channels.indexOf(channel) < 0)  channels.push(channel);   
+                    blocks[block.id] = getEhIds(block);
                 }
             })
 
             if (fromBlockNames.indexOf(block.name) >= 0) {
-                var channel = 'blocks-state-'
-                        + config.to.subscribe_key_object.properties.realtime_analytics_channel
-                        + '.' + block.id;
+                if (!blocks[block.id]) {
+                    blocks[block.id] = getEhIds(block);
+                }
 
-                if (channels.indexOf(channel) < 0)  channels.push(channel); 
             }
 
         });
 
-        var total = channels.length;
-        log(total);
+        return blocks;
+    }
+
+
+    function deleteToBlocks(cb) {
+        log('Delete To Blocks');
+
+
+        var poll;
+
+        var blocksToDelete = getRelevantToBlocks();
+
+        log(JSON.stringify(blocksToDelete));
+
+        var total = Object.keys(blocksToDelete).length;
+
 
         if (total == 0) {
             cb();
             return;
         }
 
-        function done(e) {
-            if (e) {
-                cb(e);
-                return;
-            }
-            if (--total == 0) cb();
-        }
+        function done(e, blockId, ehId) {
 
-        
-        // subscribe to status channel
-        pubnub.subscribe({
-            channel: channels,
-            connect: function(c) {
-
-                var blockId = c.split('.')[1];
-
-                api.to.request('get', ['api', 'v1', 'blocks', 'key', 
-                    config.to.subscribe_key_object.id, 'block', blockId], {
-
-                }, function (err, data) {
-                   // log(JSON.stringify(data));
-
-
-                    
-                    if (err) {
-                        done(err);
-                    }
-
-                    else {
-                        var b = data.payload[0];
-
-
-                        if (b.state === 'stopped') {
-                            api.to.request('delete', ['api', 'v1', 'blocks', 'key',
-                                config.to.subscribe_key_object.id, 'block', 
-                                b.id], {
-                            }, function (err, data) {
-                                //log('Deleted ' + JSON.stringify(err));
-                                //log(JSON.stringify(data));
-                                done(err ? err.message : null); 
-                                //done();
-                            });
-                        } else {
-                            api.to.request('post', ['api', 'v1', 'blocks', 'key',
-                                config.to.subscribe_key_object.id, 'block',
-                                blockId, 'stop'], {
-
-                                }, function (err) {
-                                    //log('stopped ' + JSON.stringify(err));
-                            });
-                        }
-                    }   
-
-                });
+            if (blocksToDelete[blockId]) {
                 
-            },
+                delete blocksToDelete[blockId][ehId];
 
-            message: function (m) {
+                if (Object.keys(blocksToDelete[blockId]).length == 0) {
+                    delete blocksToDelete[blockId];
+                }
+            }
 
-                if (m.state === 'running') {
-                    //console.log('running');
-                } else if (m.state === 'stopped') {
+            if (e) {
+                cb && cb(e);
+                cb = null;
+                poll && clearInterval(poll);
+            }
 
-                    //console.log('Block State: ' + m.state);
-                    
-                    api.to.request('delete', ['api', 'v1', 'blocks', 'key',
-                        config.to.subscribe_key_object.id, 'block', 
-                        m.block_id], {
+            if (Object.keys(blocksToDelete).length == 0) {
+                poll && clearInterval(poll);
+                cb && cb();
+                cb =  null;
 
-                        }, function (err, data) {
-                            log('Deleted');
-                            if (err) log(JSON.stringify(data));
-                            done(err ? err.message : null);
-                        }
-                    );
-                    
+            }
+        }
+        
 
-                } else {
-                    if (m.state !== 'pending') {
-                        //console.log('Block State: ' + m.state + '...');
-                    }
+        Object.keys(blocksToDelete).forEach(function(blockId) {
+
+            api.to.request('get', ['api', 'v1', 'blocks', 'key', 
+                config.to.subscribe_key_object.id, 'block', blockId], {
+
+            }, function (err, data) {
+                
+                if (err) {
+                    done(err);
                 }
 
-            },
-            error: function (error) {
-                // Handle error here
-                cb(JSON.stringify(error));
-            }
-        }); 
-        
-        //});
+                else {
+                    var b = data.payload[0];
+
+
+                    if (b.state === 'stopped') {
+                        api.to.request('delete', ['api', 'v1', 'blocks', 'key',
+                            config.to.subscribe_key_object.id, 'block', 
+                            b.id], {
+                        }, function (err, data) {
+
+                            done(err ? err.message : null); 
+
+                        });
+                    } else {
+                        api.to.request('post', ['api', 'v1', 'blocks', 'key',
+                            config.to.subscribe_key_object.id, 'block',
+                            blockId, 'stop'], {
+
+                            }, function (err) {
+
+                        });
+                    }
+                }   
+
+            });
+
+        });
+
+
+        setTimeout(function(){
+            poll = setInterval(function(){
+                Object.keys(blocksToDelete).forEach(function(block_id){
+                    api.to.request('get', ['api', 'v1', 'blocks', 'key',
+                        config.to.subscribe_key_object.id, 'block', 
+                        block_id], {
+                    }, function (err, data) {
+
+                        if (err) return;
+                        var b = data.payload[0];
+                        if (!b || !(b.event_handlers)) return;
+
+                        b.event_handlers.forEach(function(eh){
+
+                            if (eh.state === 'stopped') {
+                                 done(null, block_id, eh.id);
+                            }
+                        });
+
+                    });
+                });
+
+            }, 2000);
+
+
+        }, 10000);
+
+
     }
 
     function pushBlocks(cb) {
@@ -367,12 +373,11 @@
                                 config.to.subscribe_key_object.id, 'event_handler'], {
                                     form: handler
                                 }, function(err, data) {
-                                    if (err) console.log(err + ' : ' + JSON.stringify(data));
                                     done(err);
                                 });
                         });
                     } else {
-                        done(err);
+                        //done(err);
                     }
                         
                 });
@@ -386,18 +391,10 @@
     function startToBlocks(cb) {
         log('Start To Blocks');
 
-        var total = config.to.blocks.length;
 
-        var fromChannels = [];
-        var fromBlockNames = [];
-        config.from.blocks.forEach(function(block){
-            fromBlockNames.push(block.name);
-            block.event_handlers.forEach(function(handler){
-                fromChannels.push(handler.channels);
-            });
-        });
 
-        var blocksToStart = {};
+        var blocksToStart = getRelevantToBlocks();
+        var total = Object.keys(blocksToStart).length;
 
         var poll;
 
@@ -406,18 +403,17 @@
             return;
         }
 
-        function done(e, id) {
-            console.log(e + ' : ' + id);
+        function done(e, blockId, ehId) {
 
-            if (blocksToStart[id]) {
+            if (blocksToStart[blockId]) {
 
-                blocksToStart[id] -= 1;
-                if (blocksToStart[id] == 0) {
-                    delete blocksToStart[id];
+                delete blocksToStart[blockId][ehId];
+
+                if (Object.keys(blocksToStart[blockId]).length == 0) {
+                    delete blocksToStart[blockId];
                 }
             }
 
-            console.log(JSON.stringify(blocksToStart));
             if (e) {
                 cb && cb(e);
                 cb = null;
@@ -435,24 +431,6 @@
 
 
 
-        config.to.blocks.forEach(function(block){
-
-            block.event_handlers.forEach(function(eh){
-
-                if (fromChannels.indexOf(eh.channels) >= 0) {
-
-
-                    if (!blocksToStart[block.id]) {
-                        blocksToStart[block.id] = 0;
-                    }
-                    blocksToStart[block.id] += 1;
-
-                }
-            })
-
-        });
-
-
         setTimeout(function(){
             poll = setInterval(function(){
                 Object.keys(blocksToStart).forEach(function(block_id){
@@ -467,7 +445,7 @@
                         b.event_handlers.forEach(function(eh){
 
                             if (eh.state === 'running') {
-                                 done(null, block_id);
+                                 done(null, block_id, eh.id);
                             }
                         });
 
@@ -485,29 +463,25 @@
                 config.to.subscribe_key_object.id, 'block', blockId], {
 
             }, function (err, data) {
-               // log(JSON.stringify(data));
-
-
-                    
+                
                     if (err) {
                         done(err, blockId);
                     } else {
                         var b = data.payload[0];
-                        console.log(JSON.stringify(b));
-                        if (b.event_handlers.length == 0) console.log(JSON.stringify(b));
+
 
                         if (b.state === 'stopped') {
                             api.to.request('post', ['api', 'v1', 'blocks', 'key',
                                 config.to.subscribe_key_object.id, 'block', 
                                 b.id, 'start'], {
                             }, function (err, data) {
-                                //done(err ? err.message : null); 
-                                //done();
-                                console.log(err);
-                                console.log(JSON.stringify(data));
+
                             });
                         } else if (b.state === 'running') {
-                            done(null, b.id);
+                            b.event_handlers.forEach(function(eh){
+                                done(null, b.id, eh.id);                                
+                            })
+
                         }
                     }   
 
@@ -584,41 +558,6 @@
     }
 
 
-    /*
-
-    async.series([
-
-        initFrom, 
-        initTo,
-        getFromKeyId,
-        getToKeyId,
-        getFromBlocks,
-        getToBlocks,
-        deleteToBlocks,
-        pushBlocks, 
-        getToBlocks,
-        startToBlocks, 
-        //prepareTests,
-        runTests//,
-        //printConfig
-    ], function (err) {
-        if (err) {
-            console.log(JSON.stringify(err));
-            // display our error if one is thrown
-            if (err.code) {
-
-            } else {
-
-            }
-            process.exit(1);
-        } else {
-
-            // forceful exit
-            process.exit(0);
-        }
-    });
-    */
-
 
     void function loop() {
       async.series([
@@ -628,18 +567,17 @@
         getToKeyId,
         getFromBlocks,
         getToBlocks,
-        deleteToBlocks,
-        pushBlocks, 
-        getToBlocks,
-        startToBlocks
+        //deleteToBlocks,
+        //pushBlocks, 
+        //getToBlocks,
+        //startToBlocks
+        runTests
       ], function(error, results) {
-          console.log(JSON.stringify(error));
-          console.log(JSON.stringify(results));
+
           if (error) {
             if (error.message && error.message.search(/ESOCKETTIMEDOUT|ETIMEDOUT/) == -1) {
 
             } else {
-                console.log('DO LOOP');
                 loop();
             }
           } else {
