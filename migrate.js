@@ -567,10 +567,10 @@
         getToKeyId,
         getFromBlocks,
         getToBlocks,
-        //deleteToBlocks,
-        //pushBlocks, 
-        //getToBlocks,
-        //startToBlocks
+        deleteToBlocks,
+        pushBlocks, 
+        getToBlocks,
+        startToBlocks
         runTests
       ], function(error, results) {
 
