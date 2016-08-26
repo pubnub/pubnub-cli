@@ -431,51 +431,24 @@
 
             }
         }
-        
 
-
-        // after it starts
-        // we need to subscribe to the channel to see output
-        var pubnub = PUBNUB.init({
-            subscribe_key: config.to.subscribe_key,
-            publish_key: config.to.publish_key,
-            origin: envs[config.to.key].origin
-        });
-
-        var channels = [];
 
 
 
         config.to.blocks.forEach(function(block){
 
             block.event_handlers.forEach(function(eh){
-                console.log(fromChannels);
-                console.log(eh.channels);
+
                 if (fromChannels.indexOf(eh.channels) >= 0) {
 
-                    var channel = 'blocks-state-'
-                        + config.to.subscribe_key_object.properties.realtime_analytics_channel
-                        + '.' + block.id;
-
-                    if (channels.indexOf(channel) < 0)  channels.push(channel);
 
                     if (!blocksToStart[block.id]) {
                         blocksToStart[block.id] = 0;
                     }
                     blocksToStart[block.id] += 1;
 
-                    console.log(JSON.stringify(blocksToStart));
                 }
             })
-
-            if (fromBlockNames.indexOf(block.name) >= 0) {
-                var channel = 'blocks-state-'
-                        + config.to.subscribe_key_object.properties.realtime_analytics_channel
-                        + '.' + block.id;
-
-                if (channels.indexOf(channel) < 0)  channels.push(channel);
-
-            }
 
         });
 
@@ -487,13 +460,12 @@
                         config.to.subscribe_key_object.id, 'block', 
                         block_id], {
                     }, function (err, data) {
-                        //done(err ? err.message : null); 
-                        //done();
+
                         if (err) return;
 
                         var b = data.payload[0];
                         b.event_handlers.forEach(function(eh){
-                            console.log(eh.id + ' : ' + eh.block_id + ' : ' + eh.state + ' : ' + eh.name);
+
                             if (eh.state === 'running') {
                                  done(null, block_id);
                             }
@@ -508,74 +480,42 @@
         }, 10000);
 
 
+        Object.keys(blocksToStart).forEach(function(blockId){
+            api.to.request('get', ['api', 'v1', 'blocks', 'key', 
+                config.to.subscribe_key_object.id, 'block', blockId], {
+
+            }, function (err, data) {
+               // log(JSON.stringify(data));
 
 
-        // subscribe to status channel
-        pubnub.subscribe({
-            channel: channels,
-            connect: function(c) {
-                //log('Connect to  ' + c);  
-                var blockId = c.split('.')[1];
+                    
+                    if (err) {
+                        done(err, blockId);
+                    } else {
+                        var b = data.payload[0];
+                        console.log(JSON.stringify(b));
+                        if (b.event_handlers.length == 0) console.log(JSON.stringify(b));
 
-                api.to.request('get', ['api', 'v1', 'blocks', 'key', 
-                    config.to.subscribe_key_object.id, 'block', blockId], {
+                        if (b.state === 'stopped') {
+                            api.to.request('post', ['api', 'v1', 'blocks', 'key',
+                                config.to.subscribe_key_object.id, 'block', 
+                                b.id, 'start'], {
+                            }, function (err, data) {
+                                //done(err ? err.message : null); 
+                                //done();
+                                console.log(err);
+                                console.log(JSON.stringify(data));
+                            });
+                        } else if (b.state === 'running') {
+                            done(null, b.id);
+                        }
+                    }   
 
-                }, function (err, data) {
-                   // log(JSON.stringify(data));
-
-
-                        
-                        if (err) {
-                          
-                            merror( err + ' : ' + JSON.stringify(data) , done, err);
-
-                        } else {
-                            var b = data.payload[0];
-                            console.log(JSON.stringify(b));
-                            if (b.event_handlers.length == 0) console.log(JSON.stringify(b));
-
-                            if (b.state === 'stopped') {
-                                api.to.request('post', ['api', 'v1', 'blocks', 'key',
-                                    config.to.subscribe_key_object.id, 'block', 
-                                    b.id, 'start'], {
-                                }, function (err, data) {
-                                    //done(err ? err.message : null); 
-                                    //done();
-                                    console.log(err);
-                                    console.log(JSON.stringify(data));
-                                });
-                            } else if (b.state === 'running') {
-                                done(null, b.id);
-                            }
-                        }   
-
-                    }
-                );
-                
-            },
-
-            message: function (m) {
-
-                if (m.state === 'running') {
-                    //log('running');
-                    console.log(JSON.stringify(m));
-                    done(null, m.block_id);
-                } else if (m.state === 'stopped') {
-                    //log('Block State: ' + m.state);
-
-                } else {
-                    if (m.state !== 'pending') {
-                        //log('Block State: ' + m.state + '...');
-                    }
                 }
+            );
 
-            },
-            error: function (error) {
-                // Handle error here
-                merror(JSON.stringify(error), cb, JSON.stringify(error));
-            }
-        }); 
-        //});
+        });
+
     }
 
 
