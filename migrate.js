@@ -35,13 +35,9 @@
 
 
     var skipList = [
-        'anti-spam',
-        'hangman',
-        'fire-sensor-alert',
         'email-sendgrid',
         'hello-world',
         'text-to-speech',
-        'vote-counter'
     ];
 
     var includeList = [];
@@ -179,6 +175,7 @@
 
         var blocks = {};
 
+        /*
         function getEhIds(block) {
             var r = {};
             block.event_handlers.forEach(function(eh){
@@ -186,6 +183,7 @@
             });
             return r;
         }
+        */
 
 
         config.to.blocks.forEach(function(block){
@@ -194,13 +192,13 @@
 
                 if (fromChannels.indexOf(eh.channels) >= 0) {
 
-                    blocks[block.id] = getEhIds(block);
+                    blocks[block.id] = 1; //getEhIds(block);
                 }
             })
 
             if (fromBlockNames.indexOf(block.name) >= 0) {
                 if (!blocks[block.id]) {
-                    blocks[block.id] = getEhIds(block);
+                    blocks[block.id] = 1;//getEhIds(block);
                 }
 
             }
@@ -233,11 +231,11 @@
 
             if (blocksToDelete[blockId]) {
                 
-                delete blocksToDelete[blockId][ehId];
+                delete blocksToDelete[blockId]; //[ehId];
 
-                if (Object.keys(blocksToDelete[blockId]).length == 0) {
-                    delete blocksToDelete[blockId];
-                }
+                //if (Object.keys(blocksToDelete[blockId]).length == 0) {
+                //    delete blocksToDelete[blockId];
+                //}
             }
 
             if (e) {
@@ -254,6 +252,7 @@
             }
         }
         
+        /*
 
         Object.keys(blocksToDelete).forEach(function(blockId) {
 
@@ -271,12 +270,13 @@
 
 
                     if (b.state === 'stopped') {
+
                         api.to.request('delete', ['api', 'v1', 'blocks', 'key',
                             config.to.subscribe_key_object.id, 'block', 
                             b.id], {
                         }, function (err, data) {
-
-                            done(err ? err.message : null); 
+                            console.log(JSON.stringify(data));
+                            //done(err ? err.message : null, b.id); 
 
                         });
                     } else {
@@ -293,6 +293,7 @@
             });
 
         });
+        */
 
 
         setTimeout(function(){
@@ -302,22 +303,55 @@
                         config.to.subscribe_key_object.id, 'block', 
                         block_id], {
                     }, function (err, data) {
-
+                        console.log(err + " : " + JSON.stringify(data));
                         if (err) return;
-                        var b = data.payload[0];
-                        if (!b || !(b.event_handlers)) return;
+                        //console.log(JSON.stringify(data));
 
+                        if (data.payload.length > 0) {
+                            var b = data.payload[0];
+
+                            if (b && b.state === 'stopped') {
+                                api.to.request('delete', ['api', 'v1', 'blocks', 'key',
+                                    config.to.subscribe_key_object.id, 'block', 
+                                    b.id], {
+                                }, function (err, data) {
+                                    console.log(JSON.stringify(data));
+                                    //done(err ? err.message : null, b.id); 
+
+                                });
+
+                            } else {
+                                api.to.request('post', ['api', 'v1', 'blocks', 'key',
+                                    config.to.subscribe_key_object.id, 'block',
+                                    b.id, 'stop'], {
+
+                                }, function (err) {
+
+                                });
+                            }   
+                        } else {
+                            done(null, block_id);
+                        }
+ 
+
+
+
+
+                        //if (!b || !(b.event_handlers)) return;
+
+                        /*
                         b.event_handlers.forEach(function(eh){
 
                             if (eh.state === 'stopped') {
                                  done(null, block_id, eh.id);
                             }
                         });
+                        */
 
                     });
                 });
 
-            }, 2000);
+            }, 5000);
 
 
         }, 10000);
@@ -407,11 +441,11 @@
 
             if (blocksToStart[blockId]) {
 
-                delete blocksToStart[blockId][ehId];
+                delete blocksToStart[blockId] ;//[ehId];
 
-                if (Object.keys(blocksToStart[blockId]).length == 0) {
-                    delete blocksToStart[blockId];
-                }
+                //if (Object.keys(blocksToStart[blockId]).length == 0) {
+                //    delete blocksToStart[blockId];
+                //}
             }
 
             if (e) {
@@ -442,12 +476,20 @@
                         if (err) return;
 
                         var b = data.payload[0];
-                        b.event_handlers.forEach(function(eh){
+                        if (b.state === 'stopped') {
+                            api.to.request('post', ['api', 'v1', 'blocks', 'key',
+                                config.to.subscribe_key_object.id, 'block', 
+                                b.id, 'start'], {
+                            }, function (err, data) {
 
-                            if (eh.state === 'running') {
-                                 done(null, block_id, eh.id);
-                            }
-                        });
+                            });
+                        } else if (b.state === 'running') {
+                            //b.event_handlers.forEach(function(eh){
+                            //    done(null, b.id, eh.id);                                
+                            //})
+
+                            done(null, b.id);
+                        }
 
                     });
                 });
@@ -457,7 +499,7 @@
 
         }, 10000);
 
-
+        /*
         Object.keys(blocksToStart).forEach(function(blockId){
             api.to.request('get', ['api', 'v1', 'blocks', 'key', 
                 config.to.subscribe_key_object.id, 'block', blockId], {
@@ -489,6 +531,7 @@
             );
 
         });
+        */
 
     }
 
