@@ -217,7 +217,6 @@
 
         var blocksToDelete = getRelevantToBlocks();
 
-        log(JSON.stringify(blocksToDelete));
 
         var total = Object.keys(blocksToDelete).length;
 
@@ -252,48 +251,6 @@
             }
         }
         
-        /*
-
-        Object.keys(blocksToDelete).forEach(function(blockId) {
-
-            api.to.request('get', ['api', 'v1', 'blocks', 'key', 
-                config.to.subscribe_key_object.id, 'block', blockId], {
-
-            }, function (err, data) {
-                
-                if (err) {
-                    done(err);
-                }
-
-                else {
-                    var b = data.payload[0];
-
-
-                    if (b.state === 'stopped') {
-
-                        api.to.request('delete', ['api', 'v1', 'blocks', 'key',
-                            config.to.subscribe_key_object.id, 'block', 
-                            b.id], {
-                        }, function (err, data) {
-                            console.log(JSON.stringify(data));
-                            //done(err ? err.message : null, b.id); 
-
-                        });
-                    } else {
-                        api.to.request('post', ['api', 'v1', 'blocks', 'key',
-                            config.to.subscribe_key_object.id, 'block',
-                            blockId, 'stop'], {
-
-                            }, function (err) {
-
-                        });
-                    }
-                }   
-
-            });
-
-        });
-        */
 
 
         setTimeout(function(){
@@ -303,9 +260,7 @@
                         config.to.subscribe_key_object.id, 'block', 
                         block_id], {
                     }, function (err, data) {
-                        console.log(err + " : " + JSON.stringify(data));
                         if (err) return;
-                        //console.log(JSON.stringify(data));
 
                         if (data.payload.length > 0) {
                             var b = data.payload[0];
@@ -315,7 +270,6 @@
                                     config.to.subscribe_key_object.id, 'block', 
                                     b.id], {
                                 }, function (err, data) {
-                                    console.log(JSON.stringify(data));
                                     //done(err ? err.message : null, b.id); 
 
                                 });
@@ -332,21 +286,7 @@
                         } else {
                             done(null, block_id);
                         }
- 
 
-
-
-
-                        //if (!b || !(b.event_handlers)) return;
-
-                        /*
-                        b.event_handlers.forEach(function(eh){
-
-                            if (eh.state === 'stopped') {
-                                 done(null, block_id, eh.id);
-                            }
-                        });
-                        */
 
                     });
                 });
@@ -441,11 +381,8 @@
 
             if (blocksToStart[blockId]) {
 
-                delete blocksToStart[blockId] ;//[ehId];
+                delete blocksToStart[blockId];
 
-                //if (Object.keys(blocksToStart[blockId]).length == 0) {
-                //    delete blocksToStart[blockId];
-                //}
             }
 
             if (e) {
@@ -484,10 +421,6 @@
 
                             });
                         } else if (b.state === 'running') {
-                            //b.event_handlers.forEach(function(eh){
-                            //    done(null, b.id, eh.id);                                
-                            //})
-
                             done(null, b.id);
                         }
 
@@ -498,40 +431,6 @@
 
 
         }, 10000);
-
-        /*
-        Object.keys(blocksToStart).forEach(function(blockId){
-            api.to.request('get', ['api', 'v1', 'blocks', 'key', 
-                config.to.subscribe_key_object.id, 'block', blockId], {
-
-            }, function (err, data) {
-                
-                    if (err) {
-                        done(err, blockId);
-                    } else {
-                        var b = data.payload[0];
-
-
-                        if (b.state === 'stopped') {
-                            api.to.request('post', ['api', 'v1', 'blocks', 'key',
-                                config.to.subscribe_key_object.id, 'block', 
-                                b.id, 'start'], {
-                            }, function (err, data) {
-
-                            });
-                        } else if (b.state === 'running') {
-                            b.event_handlers.forEach(function(eh){
-                                done(null, b.id, eh.id);                                
-                            })
-
-                        }
-                    }   
-
-                }
-            );
-
-        });
-        */
 
     }
 
@@ -586,18 +485,13 @@
             
         });
 
-
         log('running tests');
 
         mocha.reporter('spec').run(function(failures){
-
           process.exit(failures);
-
 
         });
 
-
-   
     }
 
 
