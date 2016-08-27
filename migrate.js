@@ -1,7 +1,31 @@
 
 
     var envs = require('./envs');
-    var config = require(process.env.CONFIG || './migration_config');
+
+    if (!process.env.CONFIG) {
+        console.error("Config file not provided.\n" + 
+            "Please provide config file location via env variables\n" +
+            "For ex. CONFIG=<config file path> node migrate.js");
+
+        var format = 
+            {
+                "from":  {
+                    "key": "<prod|gold|silver|bronze>",
+                    "email": "<portal username>",
+                    "password": "<portal password>",
+                    "subscribe_key": "<subscribe key>"
+                },
+                "to": {
+                    "email": "<portal username>",
+                    "password": "<portal password>",
+                    "subscribe_key": "<subscribe key>"
+                }
+            }
+        console.error("Config file format is as below:\n");
+        console.error(JSON.stringify(format, null, 2));
+        process.exit(1);
+    }
+    var config = require('jsonfile').readFileSync(process.env.CONFIG);
     var async = require('async');
     var Mocha = require('mocha');
     var fs = require('fs');
