@@ -1,14 +1,13 @@
-    var envs = require('./envs'); 
+
+
+    var envs = require('./envs');
     var config = require(process.env.CONFIG || './migration_config');
     var async = require('async');
+    var Mocha = require('mocha');
+    var fs = require('fs');
+    var path = require('path');
 
-    process.env.ENV = config.to.key
-
-    var PUBNUB = require('pubnub');
-
-    var Mocha = require('mocha'),
-        fs = require('fs'),
-        path = require('path');
+    process.env.ENV = config.to.key;
 
 
     // Instantiate a Mocha instance.
@@ -23,11 +22,11 @@
 
 
     var api = {
-        from : require('./lib/pubnub-api')({
+        from: require('./lib/pubnub-api')({
             debug: process.env.DEBUG_HTTP,
             endpoint: envs[config.from.key].host
         }),
-        to : require('./lib/pubnub-api')({
+        to: require('./lib/pubnub-api')({
             debug: process.env.DEBUG_HTTP,
             endpoint: envs[config.to.key].host
         })
@@ -37,11 +36,10 @@
     var skipList = [
         'email-sendgrid',
         'hello-world',
-        'text-to-speech',
+        'text-to-speech'
     ];
 
     var includeList = [];
-
 
 
     function initFrom(cb) {
@@ -83,12 +81,12 @@
         });
     }
 
-    function getKeyId(api, config, cb) {
-        var givenKey = config.subscribe_key;
+    function getKeyId(a, conf, cb) {
+        var givenKey = conf.subscribe_key;
 
-        api.request('get', ['api', 'apps'], {
+        a.request('get', ['api', 'apps'], {
             qs: {
-                owner_id: config.session.user.id
+                owner_id: conf.session.user.id
             }
         }, function (err, data) {
 
@@ -110,7 +108,7 @@
             if (!paramKey) {
                 cb('Invalid key ID');
             } else {
-                config.subscribe_key_object = paramKey;
+                conf.subscribe_key_object = paramKey;
                 cb();
             }
 
@@ -126,19 +124,17 @@
     }
 
 
-    function getBlocks(api, config, cb) {
-        api.request('get', ['api', 'v1', 'blocks', 'key', 
-            config.subscribe_key_object.id, 'block'], {
+    function getBlocks(a, conf, cb) {
+        a.request('get', ['api', 'v1', 'blocks', 'key',
+            conf.subscribe_key_object.id, 'block'], {
 
-        }, function (err, data) {
-                
+            }, function (err, data) {
+
                 if (err) {
                     cb(err);
-                }
-
-                else {
-                    config.blocks = data.payload;
-                    cb()
+                } else {
+                    conf.blocks = data.payload;
+                    cb();
                 }
 
             }
@@ -153,11 +149,6 @@
         getBlocks(api.to, config.to, cb);
     }
 
-    function printConfig(cb) {
-        log(JSON.stringify(config, null, 2));
-        cb();
-    }
-
 
     function getRelevantToBlocks() {
 
@@ -165,9 +156,9 @@
         var fromChannels = [];
         var fromBlockNames = [];
 
-        config.from.blocks.forEach(function(block){
+        config.from.blocks.forEach(function (block) {
             fromBlockNames.push(block.name);
-            block.event_handlers.forEach(function(handler){
+            block.event_handlers.forEach(function (handler) {
                 fromChannels.push(handler.channels);
             });
         });
@@ -175,30 +166,20 @@
 
         var blocks = {};
 
-        /*
-        function getEhIds(block) {
-            var r = {};
-            block.event_handlers.forEach(function(eh){
-                r[eh.id] = eh.name
-            });
-            return r;
-        }
-        */
 
+        config.to.blocks.forEach(function (block) {
 
-        config.to.blocks.forEach(function(block){
-
-            block.event_handlers.forEach(function(eh){
+            block.event_handlers.forEach(function (eh) {
 
                 if (fromChannels.indexOf(eh.channels) >= 0) {
 
-                    blocks[block.id] = 1; //getEhIds(block);
+                    blocks[block.id] = 1; // getEhIds(block);
                 }
-            })
+            });
 
             if (fromBlockNames.indexOf(block.name) >= 0) {
                 if (!blocks[block.id]) {
-                    blocks[block.id] = 1;//getEhIds(block);
+                    blocks[block.id] = 1;// getEhIds(block);
                 }
 
             }
@@ -221,74 +202,72 @@
         var total = Object.keys(blocksToDelete).length;
 
 
-        if (total == 0) {
+        if (total === 0) {
             cb();
             return;
         }
 
-        function done(e, blockId, ehId) {
+        function done(e, blockId) {
 
             if (blocksToDelete[blockId]) {
-                
-                delete blocksToDelete[blockId]; //[ehId];
 
-                //if (Object.keys(blocksToDelete[blockId]).length == 0) {
-                //    delete blocksToDelete[blockId];
-                //}
+                delete blocksToDelete[blockId];
             }
 
             if (e) {
-                cb && cb(e);
+                if (cb) cb(e);
                 cb = null;
-                poll && clearInterval(poll);
+                if (poll) clearInterval(poll);
             }
 
-            if (Object.keys(blocksToDelete).length == 0) {
-                poll && clearInterval(poll);
-                cb && cb();
-                cb =  null;
+            if (Object.keys(blocksToDelete).length === 0) {
+                if (poll) clearInterval(poll);
+                if (cb) cb();
+                cb = null;
 
             }
         }
-        
 
 
-        setTimeout(function(){
-            poll = setInterval(function(){
-                Object.keys(blocksToDelete).forEach(function(block_id){
+        setTimeout(function () {
+            poll = setInterval(function () {
+                Object.keys(blocksToDelete).forEach(function (blockId) {
                     api.to.request('get', ['api', 'v1', 'blocks', 'key',
-                        config.to.subscribe_key_object.id, 'block', 
-                        block_id], {
-                    }, function (err, data) {
-                        if (err) return;
+                        config.to.subscribe_key_object.id, 'block',
+                        blockId], {
+                        }, function (err, data) {
+                            if (err) return;
 
-                        if (data.payload.length > 0) {
-                            var b = data.payload[0];
+                            if (data.payload.length > 0) {
+                                var b = data.payload[0];
 
-                            if (b && b.state === 'stopped') {
-                                api.to.request('delete', ['api', 'v1', 'blocks', 'key',
-                                    config.to.subscribe_key_object.id, 'block', 
-                                    b.id], {
-                                }, function (err, data) {
-                                    //done(err ? err.message : null, b.id); 
+                                if (b && b.state === 'stopped') {
+                                    api.to.request('delete',
+                                     ['api', 'v1', 'blocks', 'key',
+                                    config.to.subscribe_key_object.id,
+                                    'block', b.id], {
+                                    }, function () {
+                                    // done(err ? err.message : null, b.id);
 
-                                });
+                                    });
 
-                            } else {
-                                api.to.request('post', ['api', 'v1', 'blocks', 'key',
-                                    config.to.subscribe_key_object.id, 'block',
+                                } else {
+                                    api.to.request('post',
+                                        ['api', 'v1', 'blocks', 'key',
+                                    config.to.subscribe_key_object.id,
+                                    'block',
                                     b.id, 'stop'], {
 
-                                }, function (err) {
+                                    }, function () {
 
-                                });
-                            }   
-                        } else {
-                            done(null, block_id);
-                        }
+                                    });
+                                }
+                            } else {
+                                done(null, blockId);
+                            }
 
 
-                    });
+                        });
                 });
 
             }, 5000);
@@ -306,57 +285,59 @@
 
         function done(err) {
             if (err) {
-                cb(err); 
+                cb(err);
                 return;
             }
-            if (--total == 0) cb(err);
-  
-        }
-        
-        config.from.blocks.forEach(function(block){
+            if (--total === 0) cb(err);
 
-            var b =   { 
+        }
+
+        config.from.blocks.forEach(function (block) {
+
+            var b = {
                 description: block.description,
                 name: block.name,
                 key_id: config.to.subscribe_key_object.id
-             };
+            };
 
             api.to.request('post', ['api', 'v1', 'blocks', 'key',
                 config.to.subscribe_key_object.id, 'block'], {
                     form: b
                 }, function (err, data) {
-                    //log(JSON.stringify(data));
+                    // log(JSON.stringify(data));
 
                     if (!err) {
-                        block.event_handlers.forEach(function(eh){
+                        block.event_handlers.forEach(function (eh) {
                             var handler = {
-                                "name": eh.name,
-                                "type": eh.type || 'js',
-                                "description": eh.description || "",
-                                "event": eh.event,
-                                "channels": eh.channels,
-                                "output": eh.output ,
-                                "log_level": eh.log_level || "debug",
-                                "key_id": config.to.subscribe_key_object.id,
-                                "block_id": data.payload.id,
-                                "code": eh.code
+                                name: eh.name,
+                                type: eh.type || 'js',
+                                description: eh.description || '',
+                                event: eh.event,
+                                channels: eh.channels,
+                                output: eh.output,
+                                log_level: eh.log_level || 'debug',
+                                key_id: config.to.subscribe_key_object.id,
+                                block_id: data.payload.id,
+                                code: eh.code
 
                             };
 
-                            api.to.request('post', ['api', 'v1', 'blocks', 'key',
-                                config.to.subscribe_key_object.id, 'event_handler'], {
+                            api.to.request('post',
+                                ['api', 'v1', 'blocks', 'key',
+                                config.to.subscribe_key_object.id,
+                                'event_handler'], {
                                     form: handler
-                                }, function(err, data) {
-                                    done(err);
+                                }, function (error) {
+                                    done(error);
                                 });
                         });
                     } else {
-                        //done(err);
+                        // done(err);
                     }
-                        
+
                 });
 
-     
+
         });
 
     }
@@ -366,18 +347,17 @@
         log('Start To Blocks');
 
 
-
         var blocksToStart = getRelevantToBlocks();
         var total = Object.keys(blocksToStart).length;
 
         var poll;
 
-        if (total == 0) {
+        if (total === 0) {
             cb();
             return;
         }
 
-        function done(e, blockId, ehId) {
+        function done(e, blockId) {
 
             if (blocksToStart[blockId]) {
 
@@ -386,45 +366,44 @@
             }
 
             if (e) {
-                cb && cb(e);
+                if (cb) cb(e);
                 cb = null;
-                poll && clearInterval(poll);
+                if (poll) clearInterval(poll);
             }
 
-            if (Object.keys(blocksToStart).length == 0) {
-                poll && clearInterval(poll);
-                cb && cb();
-                cb =  null;
+            if (Object.keys(blocksToStart).length === 0) {
+                if (poll) clearInterval(poll);
+                if (cb) cb();
+                cb = null;
 
             }
         }
 
 
-
-
-        setTimeout(function(){
-            poll = setInterval(function(){
-                Object.keys(blocksToStart).forEach(function(block_id){
+        setTimeout(function () {
+            poll = setInterval(function () {
+                Object.keys(blocksToStart).forEach(function (blockId) {
                     api.to.request('get', ['api', 'v1', 'blocks', 'key',
-                        config.to.subscribe_key_object.id, 'block', 
-                        block_id], {
-                    }, function (err, data) {
+                        config.to.subscribe_key_object.id, 'block',
+                        blockId], {
+                        }, function (err, data) {
 
-                        if (err) return;
+                            if (err) return;
 
-                        var b = data.payload[0];
-                        if (b.state === 'stopped') {
-                            api.to.request('post', ['api', 'v1', 'blocks', 'key',
-                                config.to.subscribe_key_object.id, 'block', 
+                            var b = data.payload[0];
+                            if (b.state === 'stopped') {
+                                api.to.request('post',
+                                    ['api', 'v1', 'blocks', 'key',
+                                config.to.subscribe_key_object.id, 'block',
                                 b.id, 'start'], {
-                            }, function (err, data) {
+                                }, function () {
 
-                            });
-                        } else if (b.state === 'running') {
-                            done(null, b.id);
-                        }
+                                });
+                            } else if (b.state === 'running') {
+                                done(null, b.id);
+                            }
 
-                    });
+                        });
                 });
 
             }, 2000);
@@ -435,33 +414,27 @@
     }
 
 
-
-
-    function runTests(cb) {
+    function runTests() {
 
         var channels = [];
 
         var blockNames = [];
-        config.from.blocks.forEach(function(block){
+        config.from.blocks.forEach(function (block) {
             blockNames.push(block.name);
         });
 
 
-        config.from.blocks.forEach(function(block){
-            block.event_handlers.forEach(function(handler){
+        config.from.blocks.forEach(function (block) {
+            block.event_handlers.forEach(function (handler) {
                 channels.push(handler.channels);
             });
         });
 
 
-
-        var blockDirs = fs.readdirSync(testDir);
-
-
         // Add each .js file to the mocha instance
-        fs.readdirSync(testDir).filter(function(file){
+        fs.readdirSync(testDir).filter(function (file) {
 
-            var blockJson = testDir + '/' + file + '/' + 'block.json';
+            var blockJson = testDir + '/' + file + '/block.json';
 
 
             var block = require('jsonfile')
@@ -475,53 +448,55 @@
 
             // exclude blocks on exclude list
 
-            return (blockNames.indexOf(block.name) >= 0 &&  file[0] !== '.' && skipList.indexOf(file) < 0);
+            return (blockNames.indexOf(block.name) >= 0 &&
+                file[0] !== '.' && skipList.indexOf(file) < 0);
 
-        }).forEach(function(blockDir){
+        }).forEach(function (blockDir) {
 
             mocha.addFile(
-                path.join(testDir, blockDir , 'test.js')
+                path.join(testDir, blockDir, 'test.js')
             );
-            
+
         });
 
         log('running tests');
 
-        mocha.reporter('spec').run(function(failures){
-          process.exit(failures);
+        mocha.reporter('spec').run(function (failures) {
+            process.exit(failures);
 
         });
 
     }
 
 
+    function loop() {
+        async.series([
+            initFrom,
+            initTo,
+            getFromKeyId,
+            getToKeyId,
+            getFromBlocks,
+            getToBlocks,
+            deleteToBlocks,
+            pushBlocks,
+            getToBlocks,
+            startToBlocks,
+            runTests
+        ], function (error) {
 
-    void function loop() {
-      async.series([
-        initFrom, 
-        initTo,
-        getFromKeyId,
-        getToKeyId,
-        getFromBlocks,
-        getToBlocks,
-        deleteToBlocks,
-        pushBlocks, 
-        getToBlocks,
-        startToBlocks,
-        runTests
-      ], function(error, results) {
-
-          if (error) {
-            if (error.message && error.message.search(/ESOCKETTIMEDOUT|ETIMEDOUT/) == -1) {
-
+            if (error) {
+                if (error.message &&
+                    error.message.search(/ESOCKETTIMEDOUT|ETIMEDOUT/)
+                        === -1) {
+                    process.exit(1);
+                } else {
+                    loop();
+                }
             } else {
-                loop();
+                runTests();
             }
-          } else {
 
-            runTests();
+        });
+    }
 
-          }
-
-      });
-    }();
+    loop();
