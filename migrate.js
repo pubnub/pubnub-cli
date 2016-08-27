@@ -5,7 +5,7 @@
     if (!process.env.CONFIG) {
         console.error("Config file not provided.\n" + 
             "Please provide config file location via env variables\n" +
-            "For ex. CONFIG=<config file path> node migrate.js");
+            "For ex. DEBUG=1 DEBUG_HTTP=1 :CONFIG=<config file path> node migrate.js");
 
         var format = 
             {
