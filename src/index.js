@@ -6,7 +6,7 @@ var async = require('async'); // async control flow
 var fs = require('fs-extra'); // json support for fs
 var PUBNUB = require('pubnub'); // obviously
 var slug = require('slug'); // strips characters for friendly file names
-var envs = require('./envs'); // location of block environment configs
+var envs = require('./../envs'); // location of block environment configs
 
 require('shelljs/global'); // ability to run shell commands
 
@@ -92,7 +92,7 @@ cli.main(function (args, options) {
     self.env = envs[options.env];   // map the env string to an object
 
     // pubnub-api is a custom api client for portal related operations
-    var api = require('./lib/pubnub-api')({
+    var api = require('./networking')({
         debug: true,
         endpoint: self.env.host
     });

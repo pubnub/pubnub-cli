@@ -1,5 +1,5 @@
 var async = require('async');
-var client = require('./index.js')({
+var client = require('./../src/networking.js')({
     debug: true
 });
 
