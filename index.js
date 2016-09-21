@@ -761,8 +761,7 @@ cli.main(function (args, options) {
                             cb();
                         } else {
                             if (m.state !== 'pending') {
-                                cli.info(
-                                    'Block State: ' + m.state + '...');
+                                cli.info('Block State: ' + m.state + '...');
                             }
                         }
 
@@ -937,7 +936,7 @@ cli.main(function (args, options) {
                                         value: value
                                     }
                                 });
-                                i++;
+                                i += 1;
 
                             }
                         );
