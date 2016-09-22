@@ -18,9 +18,7 @@ cli.parse({
   file: ['f', 'A block file', 'path'],
   env: ['e', 'An environment [bronze, silver, gold, prod]', 'string'],
   email: ['m', 'Email', 'string'],
-  insert: ['n', 'Insert Mode. Create new blocks and skip prompts.', true,
-    false
-  ],
+  insert: ['n', 'Insert Mode. Create new blocks and skip prompts.', true, false],
   password: ['p', 'Password', 'string']
 }, ['login', 'logout', 'start', 'stop', 'init', 'push', 'pull']);
 
@@ -252,24 +250,16 @@ cli.main(function (args, options) {
   };
 
   var blockCreate = function (key, cb) {
-
     updateBlock(self.blockLocal, !options.insert, function (block) {
-
       block.key_id = key.id;
       block.subscribe_key = key.subscribe_key;
       block.publish_key = key.publish_key;
 
-      api.request('post', ['api', 'v1', 'blocks', 'key', key.id, 'block'], {
-        form: block
-      }, function (err, data) {
-
+      api.createBlock({ keyId: key.id, blockPayload: block }, function (err, data) {
         cli.ok('Block Created');
         cb(err ? err.message : null, data.payload);
-
       });
-
     });
-
   };
 
   // OK: Use this handy command next time:
@@ -497,28 +487,18 @@ cli.main(function (args, options) {
     // looks first in options, then in remote block, then local block
     var givenKey = options.key || self.blockRemote.key_id || self.blockLocal._key_id;
 
-    api.request('get', ['api', 'apps'], {
-      qs: {
-        owner_id: self.session.user.id
-      }
-    }, function (err, data) {
-
+    api.getApps({ ownerId: self.session.user.id }, function (err, data) {
       // if key is supplied through cli or file
       if (givenKey) {
-
         // we need to map the key id to the key object
         var paramKey = false;
 
         data.result.forEach(function (app) {
-
           app.keys.forEach(function (value) {
-
             if (givenKey === value.id) {
               paramKey = value;
             }
-
           });
-
         });
 
         if (!paramKey) {
@@ -527,29 +507,21 @@ cli.main(function (args, options) {
           self.key = paramKey;
           cb(err);
         }
-
       } else {
-
         // create an interactive key selection
         var choices = [];
 
         // loop through apps
         data.result.forEach(function (value) {
-
-          choices.push(new inquirer.Separator('---' +
-            value.name));
+          choices.push(new inquirer.Separator('---' + value.name));
 
           // loop through keys in app
           value.keys.forEach(function (value2) {
-
             choices.push({
-              name: value2.properties.name ||
-                value2.subscribe_key,
+              name: value2.properties.name || value2.subscribe_key,
               value: value2
             });
-
           });
-
         });
 
         cli.ok('Which app are you working on?');
@@ -563,120 +535,88 @@ cli.main(function (args, options) {
           self.key = answers.key;
           cb(err);
         });
-
       }
-
     });
-
   };
 
   // gets a remote block and sets as self.blockRemote
   self.blockGet = function (cb) {
-
     cli.debug('block');
 
     // look for the key in options
     // then remote block, then local block
-    var givenBlock = options.block ||
-      self.blockRemote.id || self.blockLocal._id;
+    var givenBlock = options.block || self.blockRemote.id || self.blockLocal._id;
 
     var createcb = function () {
-
-      blockCreate(self.key,
-        function (err2, data) {
-          self.blockRemote = data;
-          cb(err2);
-        }
-      );
-
+      blockCreate(self.key, function (err2, data) {
+        self.blockRemote = data;
+        cb(err2);
+      });
     };
 
-    api.request('get', ['api', 'v1', 'blocks',
-        'key', self.key.id, 'block'
-      ], {}, function (err, result) {
+    api.getBlocks({ keyId: self.key.id }, function (err, result) {
+      if (err) {
+        cb(err);
+      } else {
+        // if we force upsert, forget prompts
+        if (options.insert) {
+          createcb();
+        } else if (givenBlock) {
 
-        if (err) {
-          cb(err);
+          // if block is supplied through cli
+          var paramBlock = false;
+
+          result.payload.forEach(function (value) {
+            if (givenBlock === value.id) {
+              paramBlock = value;
+            }
+          });
+
+          if (!paramBlock) {
+            cb('Invalid block ID');
+          } else {
+            self.blockRemote = paramBlock;
+            cb(null);
+          }
         } else {
+          // choose block with gui
+          var choices = [];
+          choices.push(new inquirer.Separator('--- Admin'));
 
-          // if we force upsert, forget prompts
-          if (options.insert) {
-            createcb();
-          } else if (givenBlock) {
+          choices.push({
+            name: 'Create a New Block',
+            value: false
+          });
 
-            // if block is supplied through cli
-            var paramBlock = false;
+          if (result.payload.length) {
+            choices.push(new inquirer.Separator('--- Blocks'));
 
             result.payload.forEach(function (value) {
-
-              if (givenBlock === value.id) {
-                paramBlock = value;
-              }
-
-            });
-
-            if (!paramBlock) {
-              cb('Invalid block ID');
-            } else {
-              self.blockRemote = paramBlock;
-              cb(null);
-            }
-
-          } else {
-
-            // choose block with gui
-            var choices = [];
-            choices.push(new inquirer.Separator('--- Admin'));
-
-            choices.push({
-              name: 'Create a New Block',
-              value: false
-            });
-
-            if (result.payload.length) {
-
-              choices.push(
-                new inquirer.Separator('--- Blocks'));
-
-              result.payload.forEach(function (value) {
-
-                choices.push({
-                  name: value.name,
-                  value: value
-                });
-
+              choices.push({
+                name: value.name,
+                value: value
               });
-
-            }
-
-            cli.ok('Which block are you working on?');
-
-            inquirer.prompt([{
-              type: 'list',
-              name: 'block',
-              message: 'Select a block',
-              choices: choices
-            }]).then(function (answers) {
-
-              if (!answers.block) {
-
-                createcb();
-
-              } else {
-                self.blockRemote = answers.block;
-                cb(null);
-              }
-
             });
-
           }
 
+          cli.ok('Which block are you working on?');
+
+          inquirer.prompt([{
+            type: 'list',
+            name: 'block',
+            message: 'Select a block',
+            choices: choices
+          }]).then(function (answers) {
+            if (!answers.block) {
+              createcb();
+            } else {
+              self.blockRemote = answers.block;
+              cb(null);
+            }
+          });
         }
-
       }
-
-    );
-
+    });
   };
 
   // writes block to the local file
@@ -701,29 +641,24 @@ cli.main(function (args, options) {
 
   // pushes self.blockLocal to endpoint
   self.blockPush = function (cb) {
-
     cli.debug('blockPush');
 
-    api.request('put', ['api', 'v1', 'blocks', 'key',
-      self.blockRemote.key_id, 'block', self.blockRemote.id
-    ], {
-      form: self.blockLocal
-    }, function (err) {
+    var blockPushArgs = {
+      keyId: self.blockRemote.key_id,
+      blockId: self.blockRemote.id,
+      blockPayload: self.blockLocal
+    };
+
+    api.updateBlock(blockPushArgs, function (err) {
       cb(err ? err.message : null);
     });
-
   };
 
   // starts block on pubnub server
   self.blockStart = function (cb) {
-
     cli.debug('blockStart');
 
-    api.request('post', ['api', 'v1', 'blocks', 'key',
-      self.blockLocal._key_id, 'block', self.blockLocal._id,
-      'start'
-    ], {}, function () {
-
+    api.startBlock({ keyId: self.blockLocal._key_id, blockId: self.blockLocal._id }, function () {
       cli.ok('Sending Start Command');
 
       // after it starts
@@ -775,36 +710,25 @@ cli.main(function (args, options) {
 
   // issue block stop request on server
   self.blockStop = function (cb) {
-
     cli.debug('blockStop');
 
-    api.request('post', ['api', 'v1', 'blocks', 'key',
-      self.blockLocal._key_id, 'block', self.blockLocal._id,
-      'stop'
-    ], {}, function (err) {
-
+    api.stopBlock({ keyId: self.blockLocal._key_id, blockId: self.blockLocal._id }, function (err) {
       cb(err);
-
     });
-
   };
 
   // get event handler from server and set as self.eventHandler
   self.eventHandlerGet = function (cb) {
-
     cli.debug('eventHandler');
 
     // if event is supplied through cli
     if (options.eventHandler) {
-
       var paramEventHandler = false;
 
       self.blockRemote.event_handlers.forEach(function (value) {
-
         if (options.eventHandler === value.id) {
           paramEventHandler = value;
         }
-
       });
 
       if (!paramEventHandler) {
@@ -813,9 +737,7 @@ cli.main(function (args, options) {
         self.eventHandler = paramEventHandler;
         cb(null);
       }
-
     } else {
-
       var choices = [];
 
       self.blockRemote.event_handlers.forEach(function (value) {
@@ -838,138 +760,126 @@ cli.main(function (args, options) {
         self.eventHandler = answers.eventHandler;
         cb(null);
       });
-
     }
-
-
   };
 
   // write the event handler to a js file within a directory
   self.eventHandlerWrite = function (cb) {
-
     cli.debug('eventHandlerWrite');
 
-    self.blockLocal.event_handlers =
-      self.blockLocal.event_handlers || [];
+    self.blockLocal.event_handlers = self.blockLocal.event_handlers || [];
 
     // for each server event handler
-    async.eachSeries(self.blockRemote.event_handlers,
-      function (eh, holla) {
+    async.eachSeries(self.blockRemote.event_handlers, function (eh, holla) {
+      cli.info('Working on ' + eh.name);
 
-        cli.info('Working on ' + eh.name);
+      eh.file = eh.event + '/' + slug(eh.name) + '.js';
+      var fullPath = workingDir + options.file + eh.file;
 
-        eh.file = eh.event + '/' + slug(eh.name) + '.js';
-        var fullPath = workingDir + options.file + eh.file;
+      // try to find event handler with same id
+      var noIds = []; // count the number of eh with no id
 
-        // try to find event handler with same id
-        var noIds = []; // count the number of eh with no id
+      var found = false;
 
-        var found = false;
+      self.blockLocal.event_handlers.forEach(function (value) {
+        // if ids match
+        // overwrite local with what we have on server
+        if (eh.id === value._id) {
+          found = true;
+          value = mergeEventHandler(value, eh);
+        }
 
-        self.blockLocal.event_handlers.forEach(function (value) {
+        // find event handlers on server that do not exist locally
+        if (!value._id) {
+          noIds.push(value);
+        }
+      });
 
-          // if ids match
-          // overwrite local with what we have on server
-          if (eh.id === value._id) {
-            found = true;
-            value = mergeEventHandler(value, eh);
-          }
+      // writes an event handler to disk
+      var appendEH = function () {
+        cli.info('Writing event handler to ' + fullPath);
+        fs.outputFile(fullPath, eh.code, function () {
 
-          // find event handlers on server that do not exist locally
-          if (!value._id) {
-            noIds.push(value);
-          }
-
+          cli.debug('writing eventHandler');
+          self.blockLocal.event_handlers.push(
+            mergeEventHandler({}, eh));
+          holla();
         });
+      };
 
-        // writes an event handler to disk
-        var appendEH = function () {
+      // if server event handler exists and no match found
+      if (!found) {
 
-          cli.info('Writing event handler to ' + fullPath);
-          fs.outputFile(fullPath, eh.code, function () {
+        // if all the existing eh in the file have ids
+        if (!noIds.length) {
 
-            cli.debug('writing eventHandler');
-            self.blockLocal.event_handlers.push(
-              mergeEventHandler({}, eh));
-            holla();
+          // write the file and push
+          appendEH();
+
+        } else {
+
+          cli.error('There is a remote event handler' +
+            'that does not have a local link.');
+          cli.error('Does this (server) event handler' +
+            'match a (local) event handler?');
+
+          cli.info('Event Handler Name: ' + eh.name);
+          cli.info('Event Handler Description: ' +
+            eh.description);
+
+          var choices = [];
+
+          choices.push(new inquirer.Separator('--- Select'));
+
+          var i = 0;
+          self.blockLocal.event_handlers.forEach(
+            function (value) {
+
+              choices.push({
+                name: value.name,
+                value: {
+                  index: i,
+                  value: value
+                }
+              });
+              i += 1;
+
+            }
+          );
+
+          choices.push(new inquirer.Separator('--- Create'));
+
+          choices.push({
+            name: 'Create a new event handler',
+            value: false
+          });
+
+          cli.info('prompt');
+
+          inquirer.prompt([{
+            type: 'list',
+            name: 'eh',
+            message: 'Which event handler is this?',
+            choices: choices
+          }]).then(function (answers) {
+
+            if (!answers.eh) {
+              appendEH();
+            } else {
+              mergeEventHandler(
+                self.blockLocal.event_handlers[
+                  answers.eh.index], eh);
+              holla(null);
+            }
 
           });
 
-        };
-
-        // if server event handler exists and no match found
-        if (!found) {
-
-          // if all the existing eh in the file have ids
-          if (!noIds.length) {
-
-            // write the file and push
-            appendEH();
-
-          } else {
-
-            cli.error('There is a remote event handler' +
-              'that does not have a local link.');
-            cli.error('Does this (server) event handler' +
-              'match a (local) event handler?');
-
-            cli.info('Event Handler Name: ' + eh.name);
-            cli.info('Event Handler Description: ' +
-              eh.description);
-
-            var choices = [];
-
-            choices.push(new inquirer.Separator('--- Select'));
-
-            var i = 0;
-            self.blockLocal.event_handlers.forEach(
-              function (value) {
-
-                choices.push({
-                  name: value.name,
-                  value: {
-                    index: i,
-                    value: value
-                  }
-                });
-                i += 1;
-
-              }
-            );
-
-            choices.push(new inquirer.Separator('--- Create'));
-
-            choices.push({
-              name: 'Create a new event handler',
-              value: false
-            });
-
-            cli.info('prompt');
-
-            inquirer.prompt([{
-              type: 'list',
-              name: 'eh',
-              message: 'Which event handler is this?',
-              choices: choices
-            }]).then(function (answers) {
-
-              if (!answers.eh) {
-                appendEH();
-              } else {
-                mergeEventHandler(
-                  self.blockLocal.event_handlers[
-                    answers.eh.index], eh);
-                holla(null);
-              }
-
-            });
-
-          }
-
         }
 
+      }
 
-      },
+
+    },
       function () {
 
         cli.debug('Writing event handlers to block.json to ' +
@@ -1038,46 +948,29 @@ cli.main(function (args, options) {
       }
 
       if (id) {
-
         // if id exists, update (put)
-        api.request('put', ['api', 'v1', 'blocks', 'key',
-          self.blockRemote.key_id, 'event_handler', id
-        ], {
-          form: data
-        }, done);
-
+        api.updateBlock({ keyId: self.blockRemote.key_id, eventHandlerId: id, eventHandlerPayload: data }, done);
       } else {
-
         // of id does not exist (update)
         data.block_id = self.blockRemote.id;
         data.key_id = self.blockRemote.key_id;
         data.type = 'js';
 
-        api.request('post', ['api', 'v1', 'blocks', 'key',
-          self.blockRemote.key_id, 'event_handler'
-        ], {
-          form: data
-        }, done);
-
+        api.createBlock({ keyId: self.blockRemote.key_id, eventHandlerPayload: data }, done);
       }
-
     };
 
     // update all event handlers supplies in block.json
     async.each(self.blockLocal.event_handlers, function (eh, holla) {
-
       if (eh.file) {
-
         var fullPath = workingDir + options.file + eh.file;
         var testJson = workingDir + options.file + 'test.json';
 
         cli.info('Uploading event handler from ' + fullPath);
         fs.readFile(fullPath, 'utf8', function (err, data) {
-
           if (err) {
             holla(err.message);
           } else {
-
             // internal use only
             // see if there's a test.json in directory
             if (fs.existsSync(testJson)) {
@@ -1170,17 +1063,14 @@ cli.main(function (args, options) {
   // if one function fails, the process immediately returns
   // and displays an error
   async.series(tasks, function (err) {
-
     if (err) {
       // display our error if one is thrown
       if (err.code) {
-        cli.error(err.code + ' - ' + (err.error ||
-          'There was a problem with that request'));
+        cli.error(err.code + ' - ' + (err.error || 'There was a problem with that request'));
       } else {
         cli.error(err);
       }
     } else {
-
       // otherwise, display the given success message
       cli.ok('---------------------------------------');
       if (routes[cli.command].success) {
@@ -1198,5 +1088,4 @@ cli.main(function (args, options) {
   });
 
   return self;
-
 });

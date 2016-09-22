@@ -71,6 +71,91 @@ var Client = function (options) {
     });
   };
 
+  self.getApps = function (input, callback) {
+    var ownerId = input.ownerId;
+
+    if (!ownerId) return callback('missing ownerId');
+
+    var opts = { qs: { owner_id: ownerId } };
+    this.request('get', ['api', 'apps'], opts, callback);
+  };
+
+  self.getBlocks = function (input, callback) {
+    var keyId = input.keyId;
+
+    if (!keyId) return callback('missing keyId');
+
+    this.request('get', ['api', 'v1', 'blocks', 'key', keyId, 'block'], {}, callback);
+  };
+
+  self.startBlock = function (input, callback) {
+    var keyId = input.keyId;
+    var blockId = input.blockId;
+
+    if (!keyId) return callback('missing keyId');
+    if (!blockId) return callback('missing blockId');
+
+    this.request('post', ['api', 'v1', 'blocks', 'key', keyId, 'block', blockId, 'start'], {}, callback);
+  };
+
+  self.stopBlock = function (input, callback) {
+    var keyId = input.keyId;
+    var blockId = input.blockId;
+
+    if (!keyId) return callback('missing keyId');
+    if (!blockId) return callback('missing blockId');
+
+    this.request('post', ['api', 'v1', 'blocks', 'key', keyId, 'block', blockId, 'stop'], {}, callback);
+  };
+
+  self.createBlock = function (input, callback) {
+    var keyId = input.keyId;
+    var blockPayload = input.blockPayload;
+
+    if (!keyId) return callback('missing keyId');
+    if (!blockPayload) return callback('missing blockPayload');
+
+    var opts = { form: blockPayload };
+    this.request('post', ['api', 'v1', 'blocks', 'key', keyId, 'block'], opts, callback);
+  };
+
+  self.updateBlock = function (input, callback) {
+    var keyId = input.keyId;
+    var blockId = input.blockId;
+    var blockPayload = input.blockPayload;
+
+    if (!keyId) return callback('missing keyId');
+    if (!blockId) return callback('missing blockId');
+    if (!blockPayload) return callback('missing blockPayload');
+
+    var opts = { form: blockPayload };
+    this.request('put', ['api', 'v1', 'blocks', 'key', keyId, 'block', blockId], opts, callback);
+  };
+
+  self.createEventHandler = function (input, callback) {
+    var keyId = input.keyId;
+    var eventHandlerPayload = input.eventHandlerPayload;
+
+    if (!keyId) return callback('missing keyId');
+    if (!eventHandlerPayload) return callback('missing eventHandlerPayload');
+
+    var opts = { form: eventHandlerPayload };
+    this.request('post', ['api', 'v1', 'blocks', 'key', keyId, 'event_handler'], opts, callback);
+  };
+
+  self.updateEventHandler = function (input, callback) {
+    var keyId = input.keyId;
+    var eventHandlerId = input.eventHandlerId;
+    var eventHandlerPayload = input.eventHandlerPayload;
+
+    if (!keyId) return callback('missing keyId');
+    if (!eventHandlerId) return callback('missing eventHandlerId');
+    if (!eventHandlerPayload) return callback('missing eventHandlerPayload');
+
+    var opts = { form: eventHandlerPayload };
+    this.request('put', ['api', 'v1', 'blocks', 'key', keyId, 'event_handler', eventHandlerId], opts, callback);
+  };
+
   self.init = function (input, holla) {
 
     self.request('post', ['api', 'me'], {
