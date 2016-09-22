@@ -27,7 +27,6 @@ var workingDir = String(shelljs.pwd() + '/');
 
 // cli function to parse arguments and options
 cli.main(function (args, options) {
-
   options.file = options.file || '/';
 
   // an array of functions to run through in series
@@ -52,7 +51,6 @@ cli.main(function (args, options) {
       message: 'PubNub Email:',
       type: 'input',
       validate: function (input) {
-
         var result = true;
 
         if (input.indexOf('@') === -1) { // I apologize
@@ -60,7 +58,6 @@ cli.main(function (args, options) {
         }
 
         return result;
-
       }
     },
     password: {
@@ -99,15 +96,12 @@ cli.main(function (args, options) {
   if (!self.env) {
     cli.fatal('Invalid environment');
   } else {
-    cli.ok('Working with ' + options.env +
-      ' environment at ' + self.env.host);
+    cli.ok('Working with ' + options.env + ' environment at ' + self.env.host);
   }
 
   // this merges a remote event handler with a local event handler
   var mergeEventHandler = function (input, data) {
-
-    cli.debug('Merging remote event handle' +
-      'with local event handler.');
+    cli.debug('Merging remote event handle with local event handler.');
 
     input._id = data.id || input._id;
     input.name = data.name || input.name;
@@ -117,12 +111,10 @@ cli.main(function (args, options) {
     input.output = data.output || input.output;
 
     return input;
-
   };
 
   // interactive mode of creating/updating/merging an event handler
   var updateEventHandler = function (eventHandler, revise, cb) {
-
     // questions for inquirer
     var o = {
       name: {
@@ -158,35 +150,27 @@ cli.main(function (args, options) {
     // add interactive question to an array
     var qs = [];
     Object.keys(o).forEach(function (key) {
-
       if (revise || !eventHandler.hasOwnProperty(key)) {
         qs.push(o[key]);
       }
-
     });
 
     if (qs.length) {
-
       // if there are questions, prompt the user
       if (!revise) {
-        cli.error('Event handler ' + (eventHandler.name ||
-            eventHandler.event || 'Unknown') +
-          ' is missing some information.');
+        var eventHandlerName = eventHandler.name || eventHandler.event || 'Unknown';
+        cli.error('Event handler ' + eventHandlerName + ' is missing some information.');
       }
 
       inquirer.prompt(qs).then(cb);
-
     } else {
       // otherwise, return
       cb(eventHandler);
     }
-
-
   };
 
   // merges a remote block with what exists on the local filesystem
   var mergeBlock = function (input, data) {
-
     cli.debug('Merging remote block with local block.');
 
     input._id = data.id || input._id;
@@ -195,12 +179,10 @@ cli.main(function (args, options) {
     input.description = data.description || input.description;
 
     return input;
-
   };
 
   // updates a block object with information from interactive mode
   var updateBlock = function (block, revise, cb) {
-
     // questions for inquirer
     var o = {
       name: {
@@ -221,26 +203,22 @@ cli.main(function (args, options) {
     // add the prompt to a list of questions
     var qs = [];
     Object.keys(o).forEach(function (key) {
-
       if (revise || !block.hasOwnProperty(key)) {
         qs.push(o[key]);
       }
     });
 
     if (qs.length) {
-
       // if we need to prompt, feed the list to interactive mode
       if (!revise) {
         cli.error('Block.json is missing some information.');
       }
 
       inquirer.prompt(qs).then(cb);
-
     } else {
       // otherwise just return
       cb(block);
     }
-
   };
 
   // update the pubnub-api lib with the local sessions
@@ -265,7 +243,6 @@ cli.main(function (args, options) {
   // OK: Use this handy command next time:
   // OK: pubnub-cli push -b 1130 -k 145183
   var explain = function () {
-
     var opts = {};
 
     // checks for the presence of object properties and informs users
@@ -281,7 +258,6 @@ cli.main(function (args, options) {
     }
 
     if (Object.keys(opts).length) {
-
       var hint = 'pubnub-cli ' + cli.command;
 
       Object.keys(opts).forEach(function (key) {
@@ -290,41 +266,32 @@ cli.main(function (args, options) {
 
       cli.ok('Use this handy command next time:');
       cli.ok(hint);
-      // just for Jordan <3
-
     }
-
   };
 
   // restores session from local file
   self.sessionFileGet = function (cb) {
-
     cli.debug('sessionFileGet');
 
     // see if session file exists
     cli.info('Reading session from ' + sessionFile);
     fs.readJson(sessionFile, function (err, session) {
-
       if (err) {
         cb(null);
       } else {
         self.session = session;
         cb(null);
       }
-
     });
-
   };
 
   // deletes the local session file
   self.sessionDelete = function (cb) {
-
     cli.debug('delete_settings');
 
     if (!self.session) {
       cli.error('You are not logged in.');
     } else {
-
       cli.info('Deleting session from ' + sessionFile);
       fs.unlink(sessionFile, function (err) {
         if (err) {
@@ -333,42 +300,32 @@ cli.main(function (args, options) {
           cb();
         }
       });
-
     }
-
   };
 
   // uses the local session file to login
   self.sessionGet = function (cb) {
-
     cli.debug('get_user');
 
     var login = function (args2) {
-
       cli.spinner('Logging In...');
 
       api.init(args2, function (err, body) {
-
         cli.spinner('Logging In... Done!', true);
 
         if (err) {
           cb(err);
         } else {
-
           cli.info('Writing session to ' + sessionFile);
           fs.outputJson(sessionFile, body.result, { spaces: 4 }, function (err2) {
             self.session = body.result;
             cb(err2);
           });
-
         }
-
       });
-
     };
 
     if (!self.session) {
-
       if (cli.command !== 'login') {
         cli.error('No session found, please log in.');
       }
@@ -385,39 +342,28 @@ cli.main(function (args, options) {
         }
       } else {
         // no file found, prompt for user and pass
-        inquirer.prompt(
-            [userQuestions.email, userQuestions.password])
-          .then(function (answers) {
-            login(answers, cb);
-          });
+        inquirer.prompt([userQuestions.email, userQuestions.password]).then(function (answers) {
+          login(answers, cb);
+        });
       }
-
     } else {
-
       // we have the session file
       if (self.session.expires > (new Date().getTime() / 1000)) {
-
         cli.ok('Working as ' + self.session.user.email);
 
         // token is not expired, tell api to restore
         restore(self.session, cb);
-
       } else {
-
         // token expired, need to login again
         cli.error('Session has expired, please login.');
 
         // supply email, prompt password
-        inquirer.prompt([userQuestions.password])
-          .then(function (answers) {
-            answers.email = self.session.user.email;
-            login(answers, cb);
-          });
-
+        inquirer.prompt([userQuestions.password]).then(function (answers) {
+          answers.email = self.session.user.email;
+          login(answers, cb);
+        });
       }
-
     }
-
   };
 
   // this is a shortcut to require a block.json is supplied
@@ -428,14 +374,11 @@ cli.main(function (args, options) {
 
   // reads a block.json from wokring dir and sets as self.blockLocal
   self.blockRead = function (cb) {
-
     cli.debug('blockRead');
 
     cli.info('Reading block.json from ' + blockFile);
     fs.readJson(blockFile, function (err, data) {
-
       if (err) {
-
         if (self.blockFileRequired) {
           cli.info('No block.json found.' +
             ' Please run pubnub-cli init.');
@@ -443,45 +386,35 @@ cli.main(function (args, options) {
           cb(null);
         }
       } else {
-
         if (data.name) {
           cli.ok('Working on block ' + data.name);
         }
-
         self.blockLocal = data;
         cb();
-
       }
     });
-
   };
 
   // creates a block.json in working dir
   self.blockFileCreate = function (cb) {
-
     cli.debug('blockFileCreate');
 
     cli.info('Checking for block.json in ' + blockFile);
     fs.readJson(blockFile, function (err, data) {
-
       if (data) {
         cli.info('Block.json already exists.... editing');
         cb();
       } else {
-
         cli.info('Writing block.json to ' + blockFile);
         fs.outputJson(blockFile, {}, {
           spaces: 4
         }, cb);
       }
-
     });
-
   };
 
   // sets self.key
   self.keyGet = function (cb) {
-
     cli.debug('keyGet');
 
     // looks first in options, then in remote block, then local block
@@ -562,7 +495,6 @@ cli.main(function (args, options) {
         if (options.insert) {
           createcb();
         } else if (givenBlock) {
-
           // if block is supplied through cli
           var paramBlock = false;
 
@@ -621,7 +553,6 @@ cli.main(function (args, options) {
 
   // writes block to the local file
   self.blockWrite = function (cb) {
-
     cli.debug('blockWrite');
 
     // if for some reason blockLocal has key_id, remove it
@@ -636,7 +567,6 @@ cli.main(function (args, options) {
 
     cli.info('Writing block.json to ' + blockFile);
     fs.outputJson(blockFile, self.blockLocal, { spaces: 4 }, cb);
-
   };
 
   // pushes self.blockLocal to endpoint
@@ -683,7 +613,6 @@ cli.main(function (args, options) {
       pubnub.subscribe({
         channel: chan,
         message: function (m) {
-
           if (m.state === 'running') {
             cli.spinner('Starting Block... OK', true);
             cli.ok('Block State: ' + m.state);
@@ -696,16 +625,13 @@ cli.main(function (args, options) {
               cli.info('Block State: ' + m.state + '...');
             }
           }
-
         },
         error: function (error) {
           // Handle error here
           cb(JSON.stringify(error));
         }
       });
-
     });
-
   };
 
   // issue block stop request on server
@@ -741,12 +667,7 @@ cli.main(function (args, options) {
       var choices = [];
 
       self.blockRemote.event_handlers.forEach(function (value) {
-
-        choices.push({
-          name: value.name,
-          value: value
-        });
-
+        choices.push({ name: value.name, value: value });
       });
 
       cli.ok('Which event handler?');
@@ -799,60 +720,38 @@ cli.main(function (args, options) {
       var appendEH = function () {
         cli.info('Writing event handler to ' + fullPath);
         fs.outputFile(fullPath, eh.code, function () {
-
           cli.debug('writing eventHandler');
-          self.blockLocal.event_handlers.push(
-            mergeEventHandler({}, eh));
+          self.blockLocal.event_handlers.push(mergeEventHandler({}, eh));
           holla();
         });
       };
 
       // if server event handler exists and no match found
       if (!found) {
-
         // if all the existing eh in the file have ids
         if (!noIds.length) {
-
           // write the file and push
           appendEH();
-
         } else {
-
-          cli.error('There is a remote event handler' +
-            'that does not have a local link.');
-          cli.error('Does this (server) event handler' +
-            'match a (local) event handler?');
+          cli.error('There is a remote event handler that does not have a local link.');
+          cli.error('Does this (server) event handler match a (local) event handler?');
 
           cli.info('Event Handler Name: ' + eh.name);
-          cli.info('Event Handler Description: ' +
-            eh.description);
+          cli.info('Event Handler Description: ' + eh.description);
 
           var choices = [];
 
           choices.push(new inquirer.Separator('--- Select'));
 
           var i = 0;
-          self.blockLocal.event_handlers.forEach(
-            function (value) {
-
-              choices.push({
-                name: value.name,
-                value: {
-                  index: i,
-                  value: value
-                }
-              });
-              i += 1;
-
-            }
-          );
+          self.blockLocal.event_handlers.forEach(function (value) {
+            choices.push({ name: value.name, value: { index: i, value: value } });
+            i += 1;
+          });
 
           choices.push(new inquirer.Separator('--- Create'));
 
-          choices.push({
-            name: 'Create a new event handler',
-            value: false
-          });
+          choices.push({ name: 'Create a new event handler', value: false });
 
           cli.info('prompt');
 
@@ -862,7 +761,6 @@ cli.main(function (args, options) {
             message: 'Which event handler is this?',
             choices: choices
           }]).then(function (answers) {
-
             if (!answers.eh) {
               appendEH();
             } else {
@@ -871,74 +769,50 @@ cli.main(function (args, options) {
                   answers.eh.index], eh);
               holla(null);
             }
-
           });
-
         }
-
       }
-
-
     },
       function () {
-
-        cli.debug('Writing event handlers to block.json to ' +
-          blockFile);
+        cli.debug('Writing event handlers to block.json to ' + blockFile);
         fs.outputJson(blockFile, self.blockLocal, { spaces: 4 }, cb);
-
       }
     );
-
   };
 
   // ensures that all properties exist within block.json
   self.blockComplete = function (cb) {
-
     cli.debug('ensuring block in block.json is complete');
 
     updateBlock(self.blockLocal, false, function (data) {
-
       self.blockLocal = mergeBlock(self.blockLocal, data);
 
       cli.debug('Writing block.json to ' + blockFile);
       fs.outputJson(blockFile, self.blockLocal, { spaces: 4 }, cb);
-
     });
-
   };
 
   // ensures that all needed properties exist within eventHandler
   self.eventHandlerComplete = function (cb) {
-
     cli.debug('ensuring event handler in block.json is complete');
 
-    async.mapSeries(self.blockLocal.event_handlers,
-      function (eh, holla) {
+    async.mapSeries(self.blockLocal.event_handlers, function (eh, holla) {
+      updateEventHandler(eh, false, function (data) {
+        holla(null, mergeEventHandler(eh, data));
+      });
+    }, function (err, results) {
+      self.blockLocal.event_handlers = results;
 
-        updateEventHandler(eh, false, function (data) {
-          holla(null, mergeEventHandler(eh, data));
-        });
-
-      },
-      function (err, results) {
-
-        self.blockLocal.event_handlers = results;
-
-        cli.debug('Writing block.json in' + blockFile);
-        fs.outputJson(blockFile, self.blockLocal, { spaces: 4 }, cb);
-
-      }
-    );
-
+      cli.debug('Writing block.json in' + blockFile);
+      fs.outputJson(blockFile, self.blockLocal, { spaces: 4 }, cb);
+    });
   };
 
   // uploads the event handler to the server
   self.eventHandlerPush = function (cb) {
-
     cli.debug('eventHandlerPush');
 
     var update = function (data, done) {
-
       var id = data._id;
 
       // these properties don't exist on server, so don't send them
@@ -974,32 +848,25 @@ cli.main(function (args, options) {
             // internal use only
             // see if there's a test.json in directory
             if (fs.existsSync(testJson)) {
-
               // replace placeholder vars with those
               // in test.json if so
-              var testVars = JSON.parse(
-                fs.readFileSync(testJson, 'utf8'));
+              var testVars = JSON.parse(fs.readFileSync(testJson, 'utf8'));
 
               // do the actual replacing
               Object.keys(testVars).forEach(function (key) {
                 data = data.replace(key, testVars[key]);
               });
-
             }
 
             eh.code = data;
 
             update(eh, holla);
           }
-
         });
-
       } else {
         update(eh, holla);
       }
-
     }, cb);
-
   };
 
   // this is an array of routes
@@ -1007,7 +874,6 @@ cli.main(function (args, options) {
   // ```functions``` is an array of methods that are executed in order
   // ```success``` is the message displayed
   // when all methods have been executed
-
   var routes = {
     login: {
       functions: ['sessionFileGet', 'sessionGet'],
