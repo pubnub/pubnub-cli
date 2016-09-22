@@ -1,4 +1,4 @@
-extends: airbnb/legacy
+extends: airbnb/base
 plugins:
   - mocha
 globals:
@@ -8,6 +8,9 @@ globals:
   afterEach: true
   Promise: true
 rules:
+  import/no-extraneous-dependencies: 0
+
+
   max-len:
     - error
     - 120
@@ -23,3 +26,5 @@ rules:
   consistent-return: 0
   no-param-reassign: 0
   no-underscore-dangle: 0
+  prefer-template: 0
+  comma-dangle: 0

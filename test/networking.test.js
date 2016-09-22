@@ -1,20 +1,20 @@
-var sinon = require('sinon');
-var assert = require('assert');
+const sinon = require('sinon');
+const assert = require('assert');
 
-var networking = require('./../src/networking.js');
+const networking = require('./../lib/networking.js');
 
-describe('#networking', function () {
-  var networkingInstance;
-  var requestStub;
+describe('#networking', () => {
+  let networkingInstance;
+  let requestStub;
 
-  beforeEach(function () {
+  beforeEach(() => {
     networkingInstance = networking({ debug: true });
     requestStub = sinon.stub(networkingInstance, 'request').callsArg(3);
   });
 
-  describe('#getApps', function () {
-    it('executes call if all params are covered', function (done) {
-      networkingInstance.getApps({ ownerId: 'owner1' }, function () {
+  describe('#getApps', () => {
+    it('executes call if all params are covered', (done) => {
+      networkingInstance.getApps({ ownerId: 'owner1' }, () => {
         assert.equal(requestStub.called, 1);
         assert.deepEqual(requestStub.args[0][0], 'get');
         assert.deepEqual(requestStub.args[0][1], ['api', 'apps']);
@@ -23,8 +23,8 @@ describe('#networking', function () {
       });
     });
 
-    it('fails if ownerId is not provided', function (done) {
-      networkingInstance.getApps({}, function (err) {
+    it('fails if ownerId is not provided', (done) => {
+      networkingInstance.getApps({}, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing ownerId');
         done();
@@ -32,9 +32,9 @@ describe('#networking', function () {
     });
   });
 
-  describe('#updateBlock', function () {
-    it('executes call if all params are covered', function (done) {
-      networkingInstance.updateBlock({ keyId: 'key1', blockId: 'block1', blockPayload: { hello: 1 } }, function () {
+  describe('#updateBlock', () => {
+    it('executes call if all params are covered', (done) => {
+      networkingInstance.updateBlock({ keyId: 'key1', blockId: 'block1', blockPayload: { hello: 1 } }, () => {
         assert.equal(requestStub.called, 1);
         assert.deepEqual(requestStub.args[0][0], 'put');
         assert.deepEqual(requestStub.args[0][1], ['api', 'v1', 'blocks', 'key', 'key1', 'block', 'block1']);
@@ -43,24 +43,24 @@ describe('#networking', function () {
       });
     });
 
-    it('fails if keyId is not provided', function (done) {
-      networkingInstance.updateBlock({ blockId: 'block1', blockPayload: { hello: 1 } }, function (err) {
+    it('fails if keyId is not provided', (done) => {
+      networkingInstance.updateBlock({ blockId: 'block1', blockPayload: { hello: 1 } }, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing keyId');
         done();
       });
     });
 
-    it('fails if blockId is not provided', function (done) {
-      networkingInstance.updateBlock({ keyId: 'key1', blockPayload: { hello: 1 } }, function (err) {
+    it('fails if blockId is not provided', (done) => {
+      networkingInstance.updateBlock({ keyId: 'key1', blockPayload: { hello: 1 } }, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing blockId');
         done();
       });
     });
 
-    it('fails if blockPayload is not provided', function (done) {
-      networkingInstance.updateBlock({ keyId: 'key1', blockId: 'block1' }, function (err) {
+    it('fails if blockPayload is not provided', (done) => {
+      networkingInstance.updateBlock({ keyId: 'key1', blockId: 'block1' }, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing blockPayload');
         done();
@@ -68,9 +68,9 @@ describe('#networking', function () {
     });
   });
 
-  describe('#createBlock', function () {
-    it('executes call if all params are covered', function (done) {
-      networkingInstance.createBlock({ keyId: 'key1', blockPayload: { hello: 1 } }, function () {
+  describe('#createBlock', () => {
+    it('executes call if all params are covered', (done) => {
+      networkingInstance.createBlock({ keyId: 'key1', blockPayload: { hello: 1 } }, () => {
         assert.equal(requestStub.called, 1);
         assert.deepEqual(requestStub.args[0][0], 'post');
         assert.deepEqual(requestStub.args[0][1], ['api', 'v1', 'blocks', 'key', 'key1', 'block']);
@@ -79,16 +79,16 @@ describe('#networking', function () {
       });
     });
 
-    it('fails if keyId is not provided', function (done) {
-      networkingInstance.createBlock({ blockPayload: { hello: 1 } }, function (err) {
+    it('fails if keyId is not provided', (done) => {
+      networkingInstance.createBlock({ blockPayload: { hello: 1 } }, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing keyId');
         done();
       });
     });
 
-    it('fails if blockPayload is not provided', function (done) {
-      networkingInstance.createBlock({ keyId: 'key1' }, function (err) {
+    it('fails if blockPayload is not provided', (done) => {
+      networkingInstance.createBlock({ keyId: 'key1' }, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing blockPayload');
         done();
@@ -96,9 +96,9 @@ describe('#networking', function () {
     });
   });
 
-  describe('#getBlocks', function () {
-    it('executes call if all params are covered', function (done) {
-      networkingInstance.getBlocks({ keyId: 'key1' }, function () {
+  describe('#getBlocks', () => {
+    it('executes call if all params are covered', (done) => {
+      networkingInstance.getBlocks({ keyId: 'key1' }, () => {
         assert.equal(requestStub.called, 1);
         assert.deepEqual(requestStub.args[0][0], 'get');
         assert.deepEqual(requestStub.args[0][1], ['api', 'v1', 'blocks', 'key', 'key1', 'block']);
@@ -107,8 +107,8 @@ describe('#networking', function () {
       });
     });
 
-    it('fails if keyId is not provided', function (done) {
-      networkingInstance.getBlocks({}, function (err) {
+    it('fails if keyId is not provided', (done) => {
+      networkingInstance.getBlocks({}, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing keyId');
         done();
@@ -116,9 +116,9 @@ describe('#networking', function () {
     });
   });
 
-  describe('#startBlock', function () {
-    it('executes call if all params are covered', function (done) {
-      networkingInstance.startBlock({ keyId: 'key1', blockId: 'block1' }, function () {
+  describe('#startBlock', () => {
+    it('executes call if all params are covered', (done) => {
+      networkingInstance.startBlock({ keyId: 'key1', blockId: 'block1' }, () => {
         assert.equal(requestStub.called, 1);
         assert.deepEqual(requestStub.args[0][0], 'post');
         assert.deepEqual(requestStub.args[0][1], ['api', 'v1', 'blocks', 'key', 'key1', 'block', 'block1', 'start']);
@@ -127,16 +127,16 @@ describe('#networking', function () {
       });
     });
 
-    it('fails if keyId is not provided', function (done) {
-      networkingInstance.startBlock({ blockId: 'block1' }, function (err) {
+    it('fails if keyId is not provided', (done) => {
+      networkingInstance.startBlock({ blockId: 'block1' }, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing keyId');
         done();
       });
     });
 
-    it('fails if blockId is not provided', function (done) {
-      networkingInstance.startBlock({ keyId: 'key1' }, function (err) {
+    it('fails if blockId is not provided', (done) => {
+      networkingInstance.startBlock({ keyId: 'key1' }, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing blockId');
         done();
@@ -144,9 +144,9 @@ describe('#networking', function () {
     });
   });
 
-  describe('#stopBlock', function () {
-    it('executes call if all params are covered', function (done) {
-      networkingInstance.stopBlock({ keyId: 'key1', blockId: 'block1' }, function () {
+  describe('#stopBlock', () => {
+    it('executes call if all params are covered', (done) => {
+      networkingInstance.stopBlock({ keyId: 'key1', blockId: 'block1' }, () => {
         assert.equal(requestStub.called, 1);
         assert.deepEqual(requestStub.args[0][0], 'post');
         assert.deepEqual(requestStub.args[0][1], ['api', 'v1', 'blocks', 'key', 'key1', 'block', 'block1', 'stop']);
@@ -155,16 +155,16 @@ describe('#networking', function () {
       });
     });
 
-    it('fails if keyId is not provided', function (done) {
-      networkingInstance.stopBlock({ blockId: 'block1' }, function (err) {
+    it('fails if keyId is not provided', (done) => {
+      networkingInstance.stopBlock({ blockId: 'block1' }, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing keyId');
         done();
       });
     });
 
-    it('fails if blockId is not provided', function (done) {
-      networkingInstance.stopBlock({ keyId: 'key1' }, function (err) {
+    it('fails if blockId is not provided', (done) => {
+      networkingInstance.stopBlock({ keyId: 'key1' }, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing blockId');
         done();
@@ -172,10 +172,10 @@ describe('#networking', function () {
     });
   });
 
-  describe('#createEventHandler', function () {
-    it('executes call if all params are covered', function (done) {
-      var callingParams = { keyId: 'key1', eventHandlerId: 'eh1', eventHandlerPayload: { hello: 1 } };
-      networkingInstance.createEventHandler(callingParams, function () {
+  describe('#createEventHandler', () => {
+    it('executes call if all params are covered', (done) => {
+      const callingParams = { keyId: 'key1', eventHandlerId: 'eh1', eventHandlerPayload: { hello: 1 } };
+      networkingInstance.createEventHandler(callingParams, () => {
         assert.equal(requestStub.called, 1);
         assert.deepEqual(requestStub.args[0][0], 'post');
         assert.deepEqual(requestStub.args[0][1], ['api', 'v1', 'blocks', 'key', 'key1', 'event_handler']);
@@ -184,17 +184,17 @@ describe('#networking', function () {
       });
     });
 
-    it('fails if keyId is not provided', function (done) {
-      var callingParams = { eventHandlerPayload: { hello: 1 } };
-      networkingInstance.createEventHandler(callingParams, function (err) {
+    it('fails if keyId is not provided', (done) => {
+      const callingParams = { eventHandlerPayload: { hello: 1 } };
+      networkingInstance.createEventHandler(callingParams, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing keyId');
         done();
       });
     });
 
-    it('fails if eventHandlerPayload is not provided', function (done) {
-      networkingInstance.createEventHandler({ keyId: 'key1' }, function (err) {
+    it('fails if eventHandlerPayload is not provided', (done) => {
+      networkingInstance.createEventHandler({ keyId: 'key1' }, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing eventHandlerPayload');
         done();
@@ -202,10 +202,10 @@ describe('#networking', function () {
     });
   });
 
-  describe('#updateEventHandler', function () {
-    it('executes call if all params are covered', function (done) {
-      var callingParams = { keyId: 'key1', eventHandlerId: 'eh1', eventHandlerPayload: { hello: 1 } };
-      networkingInstance.updateEventHandler(callingParams, function () {
+  describe('#updateEventHandler', () => {
+    it('executes call if all params are covered', (done) => {
+      const callingParams = { keyId: 'key1', eventHandlerId: 'eh1', eventHandlerPayload: { hello: 1 } };
+      networkingInstance.updateEventHandler(callingParams, () => {
         assert.equal(requestStub.called, 1);
         assert.deepEqual(requestStub.args[0][0], 'put');
         assert.deepEqual(requestStub.args[0][1], ['api', 'v1', 'blocks', 'key', 'key1', 'event_handler', 'eh1']);
@@ -214,25 +214,25 @@ describe('#networking', function () {
       });
     });
 
-    it('fails if keyId is not provided', function (done) {
-      var callingParams = { eventHandlerId: 'block1', eventHandlerPayload: { hello: 1 } };
-      networkingInstance.updateEventHandler(callingParams, function (err) {
+    it('fails if keyId is not provided', (done) => {
+      const callingParams = { eventHandlerId: 'block1', eventHandlerPayload: { hello: 1 } };
+      networkingInstance.updateEventHandler(callingParams, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing keyId');
         done();
       });
     });
 
-    it('fails if eventHandlerId is not provided', function (done) {
-      networkingInstance.updateEventHandler({ keyId: 'key1', eventHandlerPayload: { hello: 1 } }, function (err) {
+    it('fails if eventHandlerId is not provided', (done) => {
+      networkingInstance.updateEventHandler({ keyId: 'key1', eventHandlerPayload: { hello: 1 } }, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing eventHandlerId');
         done();
       });
     });
 
-    it('fails if eventHandlerPayload is not provided', function (done) {
-      networkingInstance.updateEventHandler({ keyId: 'key1', eventHandlerId: 'block1' }, function (err) {
+    it('fails if eventHandlerPayload is not provided', (done) => {
+      networkingInstance.updateEventHandler({ keyId: 'key1', eventHandlerId: 'block1' }, (err) => {
         assert.equal(requestStub.called, 0);
         assert.equal(err, 'missing eventHandlerPayload');
         done();
