@@ -1,6 +1,6 @@
 {
   "name": "pubnub-cli",
-  "version": "0.0.16",
+  "version": "0.0.17.b1",
   "description": "Interact with PubNub through an interactive CLI",
   "main": "lib/index.js",
   "scripts": {
