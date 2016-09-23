@@ -427,6 +427,8 @@ cli.main(function (args, options) {
     const givenKey = options.key || self.blockRemote.key_id || self.blockLocal._key_id;
 
     api.getApps({ ownerId: self.session.user.id }, (err, data) => {
+      if (err) return cli.error(err);
+
       // if key is supplied through cli or file
       if (givenKey) {
         // we need to map the key id to the key object
