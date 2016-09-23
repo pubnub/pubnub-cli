@@ -240,4 +240,34 @@ describe('#networking', () => {
     });
   });
 
+  describe('#createLoginToken', () => {
+    it('executes call if all params are covered', (done) => {
+      const callingParams = { email: 'spam@gmail.com', password: 'pwd1' };
+      networkingInstance.createLoginToken(callingParams, () => {
+        assert.equal(requestStub.called, 1);
+        assert.deepEqual(requestStub.args[0][0], 'post');
+        assert.deepEqual(requestStub.args[0][1], ['api', 'me']);
+        assert.deepEqual(requestStub.args[0][2], { form: { email: 'spam@gmail.com', password: 'pwd1' } });
+        done();
+      });
+    });
+
+    it('fails if password is not provided', (done) => {
+      const callingParams = { email: 'spam@gmail.com' };
+      networkingInstance.createLoginToken(callingParams, (err) => {
+        assert.equal(requestStub.called, 0);
+        assert.equal(err, 'missing password');
+        done();
+      });
+    });
+
+    it('fails if email is not provided', (done) => {
+      networkingInstance.createLoginToken({ password: 'pwd1' }, (err) => {
+        assert.equal(requestStub.called, 0);
+        assert.equal(err, 'missing email');
+        done();
+      });
+    });
+  });
+
 });

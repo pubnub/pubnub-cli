@@ -123,13 +123,16 @@ export default class {
     this.request('put', ['api', 'v1', 'blocks', 'key', keyId, 'event_handler', eventHandlerId], opts, callback);
   }
 
+  createLoginToken({ email, password }, callback) {
+    if (!email) return callback('missing email');
+    if (!password) return callback('missing password');
+
+    const opts = { form: { email, password } };
+    this.request('post', ['api', 'me'], opts, callback);
+  }
+
   init(input, holla) {
-    this.request('post', ['api', 'me'], {
-      form: {
-        email: input.email || this.errHandle('No Email Supplied'),
-        password: input.password || this.errHandle('No Password Supplied')
-      }
-    }, (err, body) => {
+    this.createLoginToken({ email: input.email, password: input.password }, (err, body) => {
       if (body && body.error) {
         holla(body.error);
       } else if (err) {
@@ -138,7 +141,6 @@ export default class {
         this.session = body.result;
         holla(null, body);
       }
-
     });
   }
 }
