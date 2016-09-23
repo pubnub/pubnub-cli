@@ -6,6 +6,8 @@ const runSequence = require('run-sequence');
 const sourcemaps = require('gulp-sourcemaps');
 const clean = require('gulp-clean');
 const babel = require('gulp-babel');
+const watch = require('gulp-watch');
+const batch = require('gulp-batch');
 
 gulp.task('lint_src', () => {
   return gulp.src(['src/**/*.js'])
@@ -38,6 +40,13 @@ gulp.task('run_tests', () => {
   return gulp
     .src('test/**/*.test.js', { read: false })
     .pipe(mocha({ reporter: 'spec' }));
+});
+
+gulp.task('watch', () => {
+  // Endless stream mode
+  return watch('src/**/*.js', batch((events, done) => {
+    gulp.start('compile', done);
+  }));
 });
 
 gulp.task('lint', (done) => {

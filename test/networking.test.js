@@ -1,14 +1,14 @@
 const sinon = require('sinon');
 const assert = require('assert');
 
-const networking = require('./../lib/networking.js');
+const Networking = require('./../lib/networking.js');
 
 describe('#networking', () => {
   let networkingInstance;
   let requestStub;
 
   beforeEach(() => {
-    networkingInstance = networking({ debug: true });
+    networkingInstance = new Networking({ debug: true });
     requestStub = sinon.stub(networkingInstance, 'request').callsArg(3);
   });
 

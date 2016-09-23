@@ -9,7 +9,7 @@ const slug = require('slug'); // strips characters for friendly file names
 const shelljs = require('shelljs'); // ability to run shell commands
 
 const envs = require('./../envs'); // location of block environment configs
-const networking = require('./networking');
+const Networking = require('./networking');
 
 // cli arguments and commands
 cli.parse({
@@ -88,7 +88,7 @@ cli.main(function (args, options) {
   self.env = envs[options.env]; // map the env string to an object
 
   // pubnub-api is a custom api client for portal related operations
-  const api = networking({
+  const api = new Networking({
     debug: true,
     endpoint: self.env.host
   });
@@ -806,14 +806,14 @@ cli.main(function (args, options) {
 
       if (id) {
         // if id exists, update (put)
-        api.updateBlock({ keyId: self.blockRemote.key_id, eventHandlerId: id, eventHandlerPayload: data }, done);
+        api.updateEventHandler({ keyId: self.blockRemote.key_id, eventHandlerId: id, eventHandlerPayload: data }, done);
       } else {
         // of id does not exist (update)
         data.block_id = self.blockRemote.id;
         data.key_id = self.blockRemote.key_id;
         data.type = 'js';
 
-        api.createBlock({ keyId: self.blockRemote.key_id, eventHandlerPayload: data }, done);
+        api.createEventHandler({ keyId: self.blockRemote.key_id, eventHandlerPayload: data }, done);
       }
     };
 
