@@ -10,12 +10,8 @@ globals:
 rules:
   import/no-extraneous-dependencies: 0
 
-
-  max-len:
-    - error
-    - 120
-    - ignoreComments: true
-    - ignoreUrls: true
+  class-methods-use-this: 0
+  max-len: 0
   vars-on-top: 0
   padded-blocks: 0
   func-names: 0

@@ -9,7 +9,14 @@ const slug = require('slug'); // strips characters for friendly file names
 const shelljs = require('shelljs'); // ability to run shell commands
 
 const envs = require('./../envs'); // location of block environment configs
+const packageInfo = require('./../package');
 const Networking = require('./networking');
+
+// enable plugins
+cli.enable('version');
+
+// configure self reporting.
+cli.setApp('PubNub CLI', packageInfo.version);
 
 // cli arguments and commands
 cli.parse({
@@ -19,7 +26,8 @@ cli.parse({
   env: ['e', 'An environment [bronze, silver, gold, prod]', 'string'],
   email: ['m', 'Email', 'string'],
   insert: ['n', 'Insert Mode. Create new blocks and skip prompts.', true, false],
-  password: ['p', 'Password', 'string']
+  password: ['p', 'Password', 'string'],
+  log_level: [false, 'set logging verbosity (info, debug)', 'string', 'info'],
 }, ['login', 'logout', 'start', 'stop', 'init', 'push', 'pull']);
 
 // sets all file operations relative to the current directory
@@ -89,7 +97,7 @@ cli.main(function (args, options) {
 
   // pubnub-api is a custom api client for portal related operations
   const api = new Networking({
-    debug: true,
+    logLevel: options.log_level,
     endpoint: self.env.host
   });
 
@@ -310,18 +318,16 @@ cli.main(function (args, options) {
     const login = function (args2) {
       cli.spinner('Logging In...');
 
-      api.init(args2, (err, body) => {
-        cli.spinner('Logging In... Done!', true);
+      api.createLoginToken(args2, (err, data) => {
+        if (err) return cli.error(err);
 
-        if (err) {
-          cb(err);
-        } else {
-          cli.info('Writing session to ' + sessionFile);
-          fs.outputJson(sessionFile, body.result, { spaces: 4 }, (err2) => {
-            self.session = body.result;
-            cb(err2);
-          });
-        }
+        cli.info('Writing session to ' + sessionFile);
+
+        fs.outputJson(sessionFile, data.result, { spaces: 4 }, (err2) => {
+          self.session = data.result;
+          api.updateSessionToken(data.result.token);
+          cb(err2);
+        });
       });
     };
 
