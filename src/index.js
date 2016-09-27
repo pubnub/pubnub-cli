@@ -27,7 +27,7 @@ cli.parse({
   email: ['m', 'Email', 'string'],
   insert: ['n', 'Insert Mode. Create new blocks and skip prompts.', true, false],
   password: ['p', 'Password', 'string'],
-  log_level: [false, 'set logging verbosity (info, debug)', 'string', 'info'],
+  loglevel: [false, 'set logging verbosity (info, debug)', 'string', 'info'],
 }, ['login', 'logout', 'start', 'stop', 'init', 'push', 'pull']);
 
 // sets all file operations relative to the current directory
@@ -97,7 +97,7 @@ cli.main(function (args, options) {
 
   // pubnub-api is a custom api client for portal related operations
   const api = new Networking({
-    logLevel: options.log_level,
+    logLevel: options.loglevel,
     endpoint: self.env.host
   });
 
@@ -319,10 +319,11 @@ cli.main(function (args, options) {
       cli.spinner('Logging In...');
 
       api.createLoginToken(args2, (err, data) => {
-        if (err) return cli.error(err);
+        cli.spinner('', true);
+
+        if (err) return cli.error(self.stringifyNetworkingError(err));
 
         cli.info('Writing session to ' + sessionFile);
-
         fs.outputJson(sessionFile, data.result, { spaces: 4 }, (err2) => {
           self.session = data.result;
           api.updateSessionToken(data.result.token);
@@ -673,6 +674,10 @@ cli.main(function (args, options) {
         cb(null);
       });
     }
+  };
+
+  self.stringifyNetworkingError = function (err) {
+    return err.message;
   };
 
   // write the event handler to a js file within a directory

@@ -8,7 +8,7 @@ export default class {
 
   constructor({ endpoint, logLevel }) {
     this.logLevel = logLevel;
-    this.endpoint = endpoint || 'https://portal1.gold.aws-pdx-3.ps.pn';
+    this.endpoint = endpoint;
   }
 
   updateSessionToken(newSessionToken) {
@@ -30,35 +30,27 @@ export default class {
     }
 
     if (this.logLevel === 'debug') {
-      const pendingNetworking = JSON.stringify({ state: 'pending', method, url, opts }, null, 4);
-      console.log('\n\n', colors.gray(pendingNetworking), '\n\n'); // eslint-disable-line no-console
+      const pendingNetworking = JSON.stringify({ state: 'pending', method, url, opts }, null, 2);
+      console.log('\n', colors.gray(pendingNetworking), '\n'); // eslint-disable-line no-console
     }
 
     request(opts, (err, response, body) => {
       if (response.statusCode !== 200 || err) {
         if (this.logLevel === 'debug') {
-          const pendingNetworking = JSON.stringify({ state: 'failed', method, url, opts, err, response, body }, null, 4);
-          console.log('\n\n', colors.red(pendingNetworking), '\n\n'); // eslint-disable-line no-console
+          const pendingNetworking = JSON.stringify({ state: 'failed', method, url, opts, err, response, body }, null, 2);
+          console.log('\n', colors.red(pendingNetworking), '\n'); // eslint-disable-line no-console
         }
 
-        const errorMessage = response.statusMessage || body.error || '';
-        this.errHandle('Server replied with code ' + response.statusCode + ' ' + errorMessage);
-        callback(this._extractError(err) || body.message || body);
+        callback(this._prepareErrorResponse({ err, response, body }));
       } else {
         if (this.logLevel === 'debug') {
-          const pendingNetworking = JSON.stringify({ state: 'success', method, url, opts, err, response }, null, 4);
-          console.log('\n\n', colors.green(pendingNetworking), '\n\n'); // eslint-disable-line no-console
+          const pendingNetworking = JSON.stringify({ state: 'success', method, url, opts, err, response }, null, 2);
+          console.log('\n', colors.green(pendingNetworking), '\n'); // eslint-disable-line no-console
         }
 
         callback(null, body);
       }
     });
-  }
-
-  errHandle(text) {
-    if (this.logLevel === 'debug') {
-      console.error(colors.red('API Error: ' + text)); // eslint-disable-line no-console
-    }
   }
 
   getApps({ ownerId }, callback) {
@@ -138,11 +130,24 @@ export default class {
     this.request('post', ['api', 'me'], opts, callback);
   }
 
-  _extractError(err, body) {
-    if (body && body.error) {
-      return body.error;
-    } else if (err) {
-      return err;
+  _prepareErrorResponse({ err, response, body }) {
+    const constructedError = {
+      statusCode: null,
+      message: null,
+      errorCode: null
+    };
+
+    if (response && response.statusCode) {
+      constructedError.statusCode = response.statusCode;
     }
+
+    if (body) {
+      if (body.error) constructedError.message = body.error;
+      if (body.error_code) constructedError.errorCode = body.error_code;
+    } else {
+      constructedError.message = err;
+    }
+
+    return constructedError;
   }
 }
