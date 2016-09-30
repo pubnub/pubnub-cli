@@ -231,7 +231,7 @@ cli.main(function (args, options) {
 
   // update the pubnub-api lib with the local sessions
   const restore = function (session, cb) {
-    api.session = session;
+    api.updateSessionToken(session.token);
     cb(null, session);
   };
 
@@ -339,13 +339,9 @@ cli.main(function (args, options) {
 
       if (options.email || options.password) {
         if (options.email && options.password) {
-          login({
-            email: options.email,
-            password: options.password
-          }, cb);
+          login({ email: options.email, password: options.password }, cb);
         } else {
-          cli.error('You must supply both email' +
-            ' and password to login.');
+          cli.error('You must supply both email and password to login.');
         }
       } else {
         // no file found, prompt for user and pass
@@ -428,7 +424,7 @@ cli.main(function (args, options) {
     const givenKey = options.key || self.blockRemote.key_id || self.blockLocal._key_id;
 
     api.getApps({ ownerId: self.session.user.id }, (err, data) => {
-      if (err) return cli.error(err);
+      if (err) return cli.error(this.stringifyNetworkingError(err));
 
       // if key is supplied through cli or file
       if (givenKey) {
@@ -902,15 +898,11 @@ cli.main(function (args, options) {
       success: 'Local block.json updated with remote data.'
     },
     start: {
-      functions: ['sessionFileGet', 'sessionGet', 'blockRead',
-        'keyGet', 'blockStart'
-      ],
+      functions: ['sessionFileGet', 'sessionGet', 'blockRead', 'keyGet', 'blockStart'],
       success: 'Block started'
     },
     stop: {
-      functions: ['sessionFileGet', 'sessionGet', 'blockRead',
-        'blockStop'
-      ],
+      functions: ['sessionFileGet', 'sessionGet', 'blockRead', 'blockStop'],
       success: 'Block stopped'
     }
   };
@@ -926,19 +918,13 @@ cli.main(function (args, options) {
   // and displays an error
   async.series(tasks, (err) => {
     if (err) {
-      // display our error if one is thrown
-      if (err.code) {
-        cli.error(err.code + ' - ' + (err.error || 'There was a problem with that request'));
-      } else {
-        cli.error(err);
-      }
+      cli.error(self.stringifyNetworkingError(err));
     } else {
       // otherwise, display the given success message
       cli.ok('---------------------------------------');
       if (routes[cli.command].success) {
         cli.ok(routes[cli.command].success);
       }
-      cli.ok('Deluxe!');
       cli.ok('---------------------------------------');
 
       // display the 'use this command next time' message
