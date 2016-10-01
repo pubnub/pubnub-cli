@@ -1,0 +1,1 @@
+{"version":3,"sources":["pubnub_listener.js"],"names":["subscribeKey","origin"],"mappings":";;;;;;;;aAIE,sBAAsC;AAAA,MAAxBA,YAAwB,QAAxBA,YAAwB;AAAA,MAAVC,MAAU,QAAVA,MAAU;;AAAA;AAErC,C","file":"pubnub_listener.js","sourcesContent":["\n\nexport default class {\n\n  constructor({ subscribeKey, origin }) {\n    \n  }\n\n}\n"],"sourceRoot":"/source/"}

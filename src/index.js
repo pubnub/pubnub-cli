@@ -11,6 +11,7 @@ const shelljs = require('shelljs'); // ability to run shell commands
 const envs = require('./../envs'); // location of block environment configs
 const packageInfo = require('./../package');
 const Networking = require('./networking');
+const Logger = require('./utils/logger');
 
 // enable plugins
 cli.enable('version');
@@ -95,11 +96,10 @@ cli.main(function (args, options) {
 
   self.env = envs[options.env]; // map the env string to an object
 
+  const logger = new Logger({ logLevel: options.loglevel });
+
   // pubnub-api is a custom api client for portal related operations
-  const api = new Networking({
-    logLevel: options.loglevel,
-    endpoint: self.env.host
-  });
+  const api = new Networking({ logger }, { endpoint: self.env.host });
 
   if (!self.env) {
     cli.fatal('Invalid environment');
@@ -424,7 +424,7 @@ cli.main(function (args, options) {
     const givenKey = options.key || self.blockRemote.key_id || self.blockLocal._key_id;
 
     api.getApps({ ownerId: self.session.user.id }, (err, data) => {
-      if (err) return cli.error(this.stringifyNetworkingError(err));
+      if (err) return cli.error(self.stringifyNetworkingError(err));
 
       // if key is supplied through cli or file
       if (givenKey) {

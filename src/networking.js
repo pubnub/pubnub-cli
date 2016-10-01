@@ -1,13 +1,12 @@
 const request = require('request');
-const colors = require('colors/safe');
 
 // this is a fix for bad SSL cert on portal gold
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
 
 export default class {
 
-  constructor({ endpoint, logLevel }) {
-    this.logLevel = logLevel;
+  constructor({ logger }, { endpoint }) {
+    this.logger = logger;
     this.endpoint = endpoint;
   }
 
@@ -23,31 +22,17 @@ export default class {
 
     opts.json = true;
     opts.headers = opts.headers || {};
-    opts.headers.Authorization = 'Basic cHVibnViLWJldGE6YmxvY2tzMjAxNg===';
 
     if (this.sessionToken) {
       opts.headers['X-Session-Token'] = this.sessionToken;
     }
 
-    if (this.logLevel === 'debug') {
-      const pendingNetworking = JSON.stringify({ state: 'pending', method, url, opts }, null, 2);
-      console.log('\n', colors.gray(pendingNetworking), '\n'); // eslint-disable-line no-console
-    }
-
     request(opts, (err, response, body) => {
       if (response.statusCode !== 200 || err) {
-        if (this.logLevel === 'debug') {
-          const pendingNetworking = JSON.stringify({ state: 'failed', method, url, opts, err, response, body }, null, 2);
-          console.log('\n', colors.red(pendingNetworking), '\n'); // eslint-disable-line no-console
-        }
-
+        this.logger.logFailedNetworkEvent({ method, url, opts, err, response, body });
         callback(this._prepareErrorResponse({ err, response, body }));
       } else {
-        if (this.logLevel === 'debug') {
-          const pendingNetworking = JSON.stringify({ state: 'success', method, url, opts, err, response }, null, 2);
-          console.log('\n', colors.green(pendingNetworking), '\n'); // eslint-disable-line no-console
-        }
-
+        this.logger.logSuccessfulNetworkEvent({ method, url, opts, err, response });
         callback(null, body);
       }
     });
