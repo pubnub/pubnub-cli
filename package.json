@@ -17,8 +17,8 @@
     "babel-plugin-add-module-exports": "^0.2.1",
     "babel-preset-es2015": "^6.14.0",
     "babel-register": "^6.14.0",
-    "eslint-config-airbnb": "^11.1.0",
-    "eslint-plugin-import": "^1.8.1",
+    "eslint-config-airbnb": "^12.0.0",
+    "eslint-plugin-import": "^2.1.0",
     "eslint-plugin-mocha": "^4.1.0",
     "gulp": "^3.9.1",
     "gulp-babel": "^6.1.2",
@@ -26,21 +26,17 @@
     "gulp-clean": "^0.3.2",
     "gulp-eslint": "^3.0.1",
     "gulp-mocha": "^3.0.1",
-    "gulp-sourcemaps": "^1.6.0",
+    "gulp-sourcemaps": "^2.2.0",
     "gulp-watch": "^4.3.9",
     "mocha": "^3.0.2",
     "run-sequence": "^1.2.2",
     "sinon": "^1.17.6"
   },
   "dependencies": {
-    "async": "^2.0.0-rc.5",
-    "cli": "^0.11.2",
     "colors": "^1.1.2",
-    "fs-extra": "^0.30.0",
+    "commander": "^2.9.0",
     "inquirer": "^1.0.3",
-    "pubnub": "^3.14.5",
     "request": "^2.72.0",
-    "shelljs": "^0.7.0",
-    "slug": "^0.9.1"
+    "winston": "^2.3.0"
   }
 }
