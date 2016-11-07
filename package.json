@@ -7,10 +7,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "patch-release": "npm version patch && npm publish && git push --follow-tags"
   },
-  "author": "Ian Jennings",
+  "author": "PubNub",
   "license": "MIT",
   "bin": {
-    "pubnub-cli": "bin/cli.js"
+    "pubnub-cli": "lib/cli/cli.js"
   },
   "devDependencies": {
     "babel-core": "^6.14.0",
@@ -18,7 +18,7 @@
     "babel-preset-es2015": "^6.14.0",
     "babel-register": "^6.14.0",
     "eslint-config-airbnb": "^12.0.0",
-    "eslint-plugin-import": "^2.1.0",
+    "eslint-plugin-import": "^1.16.0",
     "eslint-plugin-mocha": "^4.1.0",
     "gulp": "^3.9.1",
     "gulp-babel": "^6.1.2",

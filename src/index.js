@@ -1,27 +1,25 @@
-
-import program from 'commander';
 import winston from 'winston';
 
 import Networking from './networking';
 
 import SessionComponent from './components/session';
 
-import packageInfo from '../package.json';
+export default class {
 
-const logger = new (winston.Logger)({
-  transports: [
-    new (winston.transports.Console)()
-  ]
-});
+  constructor(isCLI = false) {
+    this.logger = new (winston.Logger)({
+      transports: [
+        new (winston.transports.Console)()
+      ]
+    });
 
-// initialize modules
-const networking = new Networking({ endpoint: 'https://admin.pubnub.com', logger });
+    this.networking = new Networking({ endpoint: 'https://admin.pubnub.com', logger: this.logger });
 
-// initialize components
-const sessionComponent = new SessionComponent({ networking, logger });
+    this.sessionComponent = new SessionComponent({ networking: this.networking, logger: this.logger, interactive: isCLI });
 
-sessionComponent._createSessionFile('max');
-
-program
-  .version(packageInfo.version)
-  .parse(process.argv);
+    this.session = {
+      create: this.sessionComponent.createSession.bind(this.sessionComponent),
+      delete: this.sessionComponent.deleteSession.bind(this.sessionComponent)
+    };
+  }
+}
