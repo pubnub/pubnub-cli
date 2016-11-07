@@ -38,11 +38,12 @@ export default class {
           return;
         }
 
-        const token = serverResponse.result.token;
+        const userId = serverResponse.result.user_id;
+        const sessionToken = serverResponse.result.token;
 
         if (this.interactive) {
-          this._createSessionFile(token).then(() => {
-            this.logger.info('Login Succesful, token: ' + token + ' saved to home directory');
+          this._createSessionFile({ userId, sessionToken }).then(() => {
+            this.logger.info('Login Succesful, token: ' + sessionToken + ' saved to home directory');
           });
         }
       });
@@ -107,15 +108,15 @@ export default class {
     return new Promise((resolve) => {
       fs.readFile(this.sessionStorage, 'utf8', (err, data) => {
         if (err) this.logger.error(err);
-        resolve(data);
+        resolve(JSON.parse(data));
       });
     });
   }
 
-  _createSessionFile(sessionToken) {
+  _createSessionFile({ sessionToken, userId }) {
     return this._deleteSessonFile().then(() => {
       return new Promise((resolve) => {
-        fs.writeFile(this.sessionStorage, sessionToken, (err) => {
+        fs.writeFile(this.sessionStorage, JSON.stringify({ sessionToken, userId }), (err) => {
           if (err) this.logger.error(err);
           resolve();
         });
