@@ -42,7 +42,7 @@ describe('#components/session', () => {
     });
 
     it('does not crash if the file does not exist', (done) => {
-      sandbox.stub(fs, 'unlink', (path, callback) => { callback('OMG', null); });
+      sandbox.stub(fs, 'unlink', (path, callback) => { callback({ code: 'ENOENT' }, null); });
       sessionComponentInstance._deleteSessonFile().then(() => {
         assert.equal(fs.unlink.called, 1);
         assert.deepEqual(fs.unlink.args[0][0], './homeFolder/.pubnub-cli');
@@ -80,7 +80,7 @@ describe('#components/session', () => {
     it('returns empty if session file does not exist', (done) => {
       sandbox.stub(fs, 'readFile', (path, encdoing, callback) => { callback('OMG', null); });
       sessionComponentInstance._fetchSessionFile().then((sessionId) => {
-        assert.equal(sessionId, null);
+        assert.deepEqual(sessionId, {});
         assert.equal(fs.readFile.called, 1);
         assert.deepEqual(fs.readFile.args[0][0], './homeFolder/.pubnub-cli');
         done();

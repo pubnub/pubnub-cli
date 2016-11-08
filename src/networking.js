@@ -1,4 +1,5 @@
 const request = require('request');
+const _ = require('lodash');
 
 // this is a fix for bad SSL cert on portal gold
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
@@ -10,10 +11,6 @@ export default class {
     this.endpoint = endpoint;
   }
 
-  updateSessionToken(newSessionToken) {
-    this.sessionToken = newSessionToken;
-  }
-
   request(method, url, opts, callback) {
     opts = opts || {};
 
@@ -23,13 +20,9 @@ export default class {
     opts.json = true;
     opts.headers = opts.headers || {};
 
-    if (this.sessionToken) {
-      opts.headers['X-Session-Token'] = this.sessionToken;
-    }
-
     request(opts, (err, response, body) => {
       if (response.statusCode !== 200 || err) {
-        this.logger.error('HTTP Request Failed', { method, url, opts, err, response, body });
+        this.logger.error('HTTP Request Failed', { method, url, opts, err, response: _.pick(response, 'end'), body });
         callback(this._prepareErrorResponse({ err, response, body }));
       } else {
         this.logger.debug('HTTP Request Successful', { method, url, opts, err, response });
@@ -38,72 +31,75 @@ export default class {
     });
   }
 
-  getApps({ ownerId }, callback) {
+  getApps({ ownerId, sessionToken }, callback) {
     if (!ownerId) return callback('missing ownerId');
-    if (!this.sessionToken) return callback('missing sessionToken');
+    if (!sessionToken) return callback('missing sessionToken');
 
-    const opts = { qs: { owner_id: ownerId } };
+    const opts = { qs: { owner_id: ownerId }, headers: { 'X-Session-Token': sessionToken } };
     this.request('get', ['api', 'apps'], opts, callback);
   }
 
-  getBlocks({ keyId }, callback) {
+  getBlocks({ keyId, sessionToken }, callback) {
     if (!keyId) return callback('missing keyId');
-    if (!this.sessionToken) return callback('missing sessionToken');
+    if (!sessionToken) return callback('missing sessionToken');
 
-    this.request('get', ['api', 'v1', 'blocks', 'key', keyId, 'block'], {}, callback);
+    const opts = { headers: { 'X-Session-Token': sessionToken } };
+    this.request('get', ['api', 'v1', 'blocks', 'key', keyId, 'block'], opts, callback);
   }
 
-  startBlock({ keyId, blockId }, callback) {
-    if (!keyId) return callback('missing keyId');
-    if (!blockId) return callback('missing blockId');
-    if (!this.sessionToken) return callback('missing sessionToken');
-
-    this.request('post', ['api', 'v1', 'blocks', 'key', keyId, 'block', blockId, 'start'], {}, callback);
-  }
-
-  stopBlock({ keyId, blockId }, callback) {
+  startBlock({ keyId, blockId, sessionToken }, callback) {
     if (!keyId) return callback('missing keyId');
     if (!blockId) return callback('missing blockId');
-    if (!this.sessionToken) return callback('missing sessionToken');
+    if (!sessionToken) return callback('missing sessionToken');
 
-    this.request('post', ['api', 'v1', 'blocks', 'key', keyId, 'block', blockId, 'stop'], {}, callback);
+    const opts = { headers: { 'X-Session-Token': sessionToken } };
+    this.request('post', ['api', 'v1', 'blocks', 'key', keyId, 'block', blockId, 'start'], opts, callback);
   }
 
-  createBlock({ keyId, blockPayload }, callback) {
+  stopBlock({ keyId, blockId, sessionToken }, callback) {
+    if (!keyId) return callback('missing keyId');
+    if (!blockId) return callback('missing blockId');
+    if (!sessionToken) return callback('missing sessionToken');
+
+    const opts = { headers: { 'X-Session-Token': sessionToken } };
+    this.request('post', ['api', 'v1', 'blocks', 'key', keyId, 'block', blockId, 'stop'], opts, callback);
+  }
+
+  createBlock({ keyId, blockPayload, sessionToken }, callback) {
     if (!keyId) return callback('missing keyId');
     if (!blockPayload) return callback('missing blockPayload');
-    if (!this.sessionToken) return callback('missing sessionToken');
+    if (!sessionToken) return callback('missing sessionToken');
 
-    const opts = { form: blockPayload };
+    const opts = { form: blockPayload, headers: { 'X-Session-Token': sessionToken } };
     this.request('post', ['api', 'v1', 'blocks', 'key', keyId, 'block'], opts, callback);
   }
 
-  updateBlock({ keyId, blockId, blockPayload }, callback) {
+  updateBlock({ keyId, blockId, blockPayload, sessionToken }, callback) {
     if (!keyId) return callback('missing keyId');
     if (!blockId) return callback('missing blockId');
     if (!blockPayload) return callback('missing blockPayload');
-    if (!this.sessionToken) return callback('missing sessionToken');
+    if (!sessionToken) return callback('missing sessionToken');
 
-    const opts = { form: blockPayload };
+    const opts = { form: blockPayload, headers: { 'X-Session-Token': sessionToken } };
     this.request('put', ['api', 'v1', 'blocks', 'key', keyId, 'block', blockId], opts, callback);
   }
 
-  createEventHandler({ keyId, eventHandlerPayload }, callback) {
+  createEventHandler({ keyId, eventHandlerPayload, sessionToken }, callback) {
     if (!keyId) return callback('missing keyId');
     if (!eventHandlerPayload) return callback('missing eventHandlerPayload');
-    if (!this.sessionToken) return callback('missing sessionToken');
+    if (!sessionToken) return callback('missing sessionToken');
 
-    const opts = { form: eventHandlerPayload };
+    const opts = { form: eventHandlerPayload, headers: { 'X-Session-Token': sessionToken } };
     this.request('post', ['api', 'v1', 'blocks', 'key', keyId, 'event_handler'], opts, callback);
   }
 
-  updateEventHandler({ keyId, eventHandlerId, eventHandlerPayload }, callback) {
+  updateEventHandler({ keyId, eventHandlerId, eventHandlerPayload, sessionToken }, callback) {
     if (!keyId) return callback('missing keyId');
     if (!eventHandlerId) return callback('missing eventHandlerId');
     if (!eventHandlerPayload) return callback('missing eventHandlerPayload');
-    if (!this.sessionToken) return callback('missing sessionToken');
+    if (!sessionToken) return callback('missing sessionToken');
 
-    const opts = { form: eventHandlerPayload };
+    const opts = { form: eventHandlerPayload, headers: { 'X-Session-Token': sessionToken } };
     this.request('put', ['api', 'v1', 'blocks', 'key', keyId, 'event_handler', eventHandlerId], opts, callback);
   }
 

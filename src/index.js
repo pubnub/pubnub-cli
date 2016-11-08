@@ -18,6 +18,7 @@ export default class {
     this.sessionComponent = new SessionComponent({ networking: this.networking, logger: this.logger, interactive: isCLI });
 
     this.session = {
+      check: this.sessionComponent.checkSession.bind(this.sessionComponent),
       create: this.sessionComponent.createSession.bind(this.sessionComponent),
       delete: this.sessionComponent.deleteSession.bind(this.sessionComponent)
     };
