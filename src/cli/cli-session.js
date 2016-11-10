@@ -10,6 +10,7 @@ program
   .version(packageInfo.version)
   .option('create [email] [password]', 'create session: email & password is optional and can be supplied in runtime.')
   .option('delete', 'delete session: delete the stored credentials if they exist.')
+  .option('check', 'check session: check if session is alive')
   .parse(process.argv);
 
 const operation = program.rawArgs[2];
@@ -25,5 +26,5 @@ if (operation === 'create') {
 } else if (operation === 'check') {
   entryPoint.session.check();
 } else {
-  entryPoint.logger.
+  entryPoint.logger.error('operation not recognized');
 }
