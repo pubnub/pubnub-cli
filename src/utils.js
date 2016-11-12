@@ -1,5 +1,6 @@
 import inquirer from 'inquirer';
 import _ from 'lodash';
+import path from 'path';
 
 export function createPromise() {
   let successResolve;
@@ -12,16 +13,43 @@ export function createPromise() {
   return { promise, reject: failureResolve, resolve: successResolve };
 }
 
+export function createPath(incomingPath) {
+  let folderPath = '';
+
+  if (incomingPath) {
+    if (path.isAbsolute(incomingPath)) {
+      folderPath = incomingPath;
+    } else {
+      path.join(process.cwd(), incomingPath);
+    }
+  } else {
+    folderPath = path.join(process.cwd(), '.');
+  }
+
+  return folderPath;
+}
+
 export function abstractedValidator(params = [], interactive) {
   const response = {};
   let validationPassing = true; // optimism.
   const questions = [];
 
+  const defaultValidator = (input) => {
+    return (input !== '' && _.trim(input).length > 0);
+  };
+
   params.forEach((param) => {
     if (param.field && _.trim(param.field) !== '') {
       response[param.name] = _.trim(param.field);
     } else if (interactive) {
-      questions.push({ type: param.type, name: param.name, message: param.question, default: param.default });
+      questions.push({
+        type: param.type,
+        name: param.name,
+        message: param.question,
+        default: param.default,
+        validate: param.validate || defaultValidator,
+        choices: param.choices
+      });
     } else {
       validationPassing = false;
     }

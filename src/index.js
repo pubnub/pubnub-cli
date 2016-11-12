@@ -20,7 +20,8 @@ export default class {
     this.sessionComponent = new SessionComponent({ networking: this.networking, logger: this.logger, interactive: isCLI });
 
     this.init = {
-      block: this.initComponent.createBlock.bind(this.initComponent)
+      block: this.initComponent.createBlock.bind(this.initComponent),
+      handler: this.initComponent.createEventHandler.bind(this.initComponent)
     };
 
     this.session = {

@@ -5,6 +5,8 @@ const program = require('commander');
 const EntryPoint = require('../index.js');
 const packageInfo = require('../../package.json');
 
+import { createPath } from '../utils';
+
 const entryPoint = new EntryPoint({ isCLI: true });
 
 program
@@ -18,21 +20,9 @@ const operation = program.rawArgs[2];
 if (!operation) process.exit(1);
 
 if (operation === 'block') {
-  let folderPath = null;
-
-  if (program.rawArgs[3]) {
-    if (path.isAbsolute(program.rawArgs[3])) {
-      folderPath = program.rawArgs[3];
-    } else {
-      path.join(process.cwd(), program.rawArgs[3]);
-    }
-  } else {
-    folderPath = path.join(process.cwd(), '.');
-  }
-
-  entryPoint.init.block({ folderPath });
+  entryPoint.init.block({ folderPath: createPath(program.rawArgs[3]) });
 } else if (operation === 'handler' || operation === 'event-handler') {
-  console.log('handler!');
+  entryPoint.init.handler({ folderPath: createPath(program.rawArgs[3]) });
 } else {
   entryPoint.logger.error('operation not recognized');
 }
