@@ -1,11 +1,12 @@
 #! /usr/bin/env node
-const path = require('path');
+
+import { createPath } from '../utils';
+
 const program = require('commander');
 
 const EntryPoint = require('../index.js');
 const packageInfo = require('../../package.json');
 
-import { createPath } from '../utils';
 
 const entryPoint = new EntryPoint({ isCLI: true });
 

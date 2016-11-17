@@ -1,6 +1,7 @@
 import os from 'os';
 import fs from 'fs';
 import colors from 'colors/safe';
+import _ from 'lodash';
 import { createPromise, abstractedValidator } from '../utils';
 
 export default class {
@@ -33,19 +34,45 @@ export default class {
         if (this.interactive) {
           if (result) this.logger.info(colors.green('session is valid'));
           else this.logger.info(colors.red('session is invalid'));
-        } else {
-          abstractedPromise.resolve({ sessionValid: result !== undefined });
         }
+
+        abstractedPromise.resolve({ sessionValid: result !== undefined, sessionToken: credentials.sessionToken, userId: credentials.userId });
       });
     }).catch((error) => {
       if (this.interactive) this.logger.error(error);
-      else abstractedPromise.reject(error);
+      return abstractedPromise.reject(error);
     });
 
-    return abstractedPromise;
+    return abstractedPromise.promise;
   }
 
-  createSession({ email, password }) {
+  validateOrCreateSession() {
+    const abstractedPromise = createPromise();
+
+    this.checkSession()
+      .then((result) => {
+        if (result.sessionValid) {
+          abstractedPromise.resolve(_.pick(result, 'sessionToken', 'ownerId'));
+        } else {
+          this.createSession()
+            .then((response) => {
+              abstractedPromise.resolve(_.pick(response, 'sessionToken', 'ownerId'));
+            })
+            .catch((err) => {
+              abstractedPromise.reject(err);
+            });
+        }
+      })
+      .catch((error) => {
+        this.logger.error(error);
+        abstractedPromise.reject(error);
+      });
+
+
+    return abstractedPromise.promise;
+  }
+
+  createSession({ email, password } = {}) {
     const abstractedPromise = createPromise();
     const inputParams = [
       {
@@ -66,8 +93,7 @@ export default class {
       this.networking.createLoginToken({ email: fields.email, password: fields.password }, (err, serverResponse) => {
         if (err) {
           if (this.interactive) this.logger.error(err);
-          else abstractedPromise.reject(err);
-          return;
+          return abstractedPromise.reject(err);
         }
 
         const userId = serverResponse.result.user_id;
@@ -78,14 +104,15 @@ export default class {
             this.logger.info('Login Succesful, token: ' + sessionToken + ' saved to home directory');
           });
         }
+
+        abstractedPromise.resolve({ sessionToken, userId });
       });
     }).catch((err) => {
       if (this.interactive) this.logger.error(err);
-      else abstractedPromise.reject(err);
-      return;
+      return abstractedPromise.reject(err);
     });
 
-    return abstractedPromise;
+    return abstractedPromise.promise;
   }
 
   deleteSession() {

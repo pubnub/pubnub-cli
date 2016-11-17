@@ -4,6 +4,7 @@ import Networking from './networking';
 
 import SessionComponent from './components/session';
 import InitComponent from './components/init';
+import AssociateComponent from './components/associate';
 
 export default class {
 
@@ -18,6 +19,9 @@ export default class {
 
     this.initComponent = new InitComponent({ networking: this.networking, logger: this.logger, interactive: isCLI });
     this.sessionComponent = new SessionComponent({ networking: this.networking, logger: this.logger, interactive: isCLI });
+    this.associateComponent = new AssociateComponent({ networking: this.networking, sessionComponent: this.sessionComponent, logger: this.logger, interactive: isCLI });
+
+    this.associate = this.associateComponent.perform.bind(this.associateComponent);
 
     this.init = {
       block: this.initComponent.createBlock.bind(this.initComponent),
