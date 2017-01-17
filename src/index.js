@@ -1,6 +1,11 @@
+
 import winston from 'winston';
+import fs from 'fs';
+import path from 'path';
+import esprima from 'esprima';
 
 import Networking from './networking';
+
 
 import SessionComponent from './components/session';
 import InitComponent from './components/init';
@@ -33,5 +38,33 @@ export default class {
       create: this.sessionComponent.createSession.bind(this.sessionComponent),
       delete: this.sessionComponent.deleteSession.bind(this.sessionComponent)
     };
+
+    this.validate = ({ folderPath }) => {
+      const sourceCodeFolder = path.join(folderPath, 'src');
+      let sourceFolderContents = [];
+
+      try {
+        sourceFolderContents = fs.readdirSync(sourceCodeFolder);
+      } catch (e) {
+        this.logger.error('failed to read source folder', e);
+        return;
+      }
+
+      sourceFolderContents.forEach((sourceFile) => {
+        // skip if it's not a javascript file.
+        const sourceCodeLocation = path.join(sourceCodeFolder, sourceFile);
+        if (path.extname(sourceCodeLocation) === '.js') {
+          const sourceCodeContents = fs.readFileSync(sourceCodeLocation, 'UTF-8');
+
+          try {
+            esprima.parse(sourceCodeContents, { sourceType: 'module' });
+            this.logger.info(sourceFile + ' is valid');
+          } catch (e) {
+            this.logger.error(sourceFile + ' is invalid', e);
+          }
+        }
+      });
+    };
+
   }
 }

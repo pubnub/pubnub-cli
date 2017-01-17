@@ -12,6 +12,7 @@ program
   .option('associate', 'associate the local block with a remote')
   .command('init [operations]', 'perform intialization operations')
   .command('session [operations]', 'perform operations related to sessions')
+  .command('validate [operations]', 'confirm that block is valid')
   .parse(process.argv);
 
 const operation = program.rawArgs[2];

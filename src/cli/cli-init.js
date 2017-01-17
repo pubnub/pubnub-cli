@@ -18,7 +18,10 @@ program
 
 const operation = program.rawArgs[2];
 
-if (!operation) process.exit(1);
+if (!operation) {
+  entryPoint.logger.error('operation not recognized');
+  process.exit(1);
+}
 
 if (operation === 'block') {
   entryPoint.init.block({ folderPath: createPath(program.rawArgs[3]) });
