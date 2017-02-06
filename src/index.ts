@@ -6,14 +6,24 @@ import esprima from 'esprima';
 
 import Networking from './networking';
 
-
 import SessionComponent from './components/session';
 import InitComponent from './components/init';
 import AssociateComponent from './components/associate';
 
+type entryPointDef = { isCLI: boolean };
+
 export default class {
 
-  constructor(isCLI = false) {
+  private logger: any;
+  private networking: Networking;
+
+  validate: Function;
+
+  init: InitComponent;
+  associate: AssociateComponent;
+  session: SessionComponent;
+
+  constructor({ isCLI = false } : entryPointDef) {
     this.logger = new (winston.Logger)({
       transports: [
         new (winston.transports.Console)()
@@ -22,24 +32,13 @@ export default class {
 
     this.networking = new Networking({ endpoint: 'https://admin.pubnub.com', logger: this.logger });
 
-    this.initComponent = new InitComponent({ networking: this.networking, logger: this.logger, interactive: isCLI });
-    this.sessionComponent = new SessionComponent({ networking: this.networking, logger: this.logger, interactive: isCLI });
-    this.associateComponent = new AssociateComponent({ networking: this.networking, sessionComponent: this.sessionComponent, logger: this.logger, interactive: isCLI });
+    this.init = new InitComponent({ networking: this.networking, logger: this.logger, interactive: isCLI });
+    this.session = new SessionComponent({ networking: this.networking, logger: this.logger, interactive: isCLI });
+    this.associate = new AssociateComponent({ networking: this.networking, sessionComponent: this.session, logger: this.logger, interactive: isCLI });
 
-    this.associate = this.associateComponent.perform.bind(this.associateComponent);
 
-    this.init = {
-      block: this.initComponent.createBlock.bind(this.initComponent),
-      handler: this.initComponent.createEventHandler.bind(this.initComponent)
-    };
 
-    this.session = {
-      check: this.sessionComponent.checkSession.bind(this.sessionComponent),
-      create: this.sessionComponent.createSession.bind(this.sessionComponent),
-      delete: this.sessionComponent.deleteSession.bind(this.sessionComponent)
-    };
-
-    this.validate = ({ folderPath }) => {
+    this.validate = ({ folderPath }: {folderPath: string}) => {
       const sourceCodeFolder = path.join(folderPath, 'src');
       let sourceFolderContents = [];
 
@@ -54,10 +53,10 @@ export default class {
         // skip if it's not a javascript file.
         const sourceCodeLocation = path.join(sourceCodeFolder, sourceFile);
         if (path.extname(sourceCodeLocation) === '.js') {
-          const sourceCodeContents = fs.readFileSync(sourceCodeLocation, 'UTF-8');
+          const sourceCodeContents: Buffer = fs.readFileSync(sourceCodeLocation);
 
           try {
-            esprima.parse(sourceCodeContents, { sourceType: 'module' });
+            esprima.parse(sourceCodeContents.toString('UTF-8'), { sourceType: 'module' });
             this.logger.info(sourceFile + ' is valid');
           } catch (e) {
             this.logger.error(sourceFile + ' is invalid', e);

@@ -1,0 +1,15 @@
+{
+  "globalDependencies": {
+    "node": "registry:env/node#6.0.0+20170119204930"
+  },
+  "dependencies": {
+    "colors": "registry:dt/colors#1.1.0+20161228000716",
+    "commander": "registry:dt/commander#2.3.0+20161118092844",
+    "esprima": "registry:dt/esprima#2.1.0+20160919195312",
+    "estree": "registry:dt/estree#0.0.0+20160907174834",
+    "inquirer": "registry:npm/inquirer#1.0.0+20160723033700",
+    "lodash": "registry:npm/lodash#4.0.0+20161015015725",
+    "request": "registry:npm/request#2.69.0+20160428223725",
+    "winston": "registry:dt/winston#2.2.0+20170106144044"
+  }
+}

@@ -1,38 +1,33 @@
 /* eslint arrow-body-style: 0 */
 const gulp = require('gulp');
-const eslint = require('gulp-eslint');
 const mocha = require('gulp-mocha');
 const runSequence = require('run-sequence');
-const sourcemaps = require('gulp-sourcemaps');
 const clean = require('gulp-clean');
-const babel = require('gulp-babel');
 const watch = require('gulp-watch');
 const batch = require('gulp-batch');
 
+const ts = require('gulp-typescript');
+const tslint = require('gulp-tslint');
+
+let tsProject = ts.createProject('tsconfig.json', { noImplicitAny: true });
+
 gulp.task('lint_src', () => {
-  return gulp.src(['src/**/*.js'])
-    .pipe(eslint())
-    .pipe(eslint.format())
-    .pipe(eslint.failAfterError());
+  gulp.src('src/**/*.ts')
+    .pipe(tslint({
+      formatter: "verbose"
+    }))
+    .pipe(tslint.report())
 });
 
-gulp.task('lint_test', () => {
-  return gulp.src(['test/**/*.js'])
-    .pipe(eslint())
-    .pipe(eslint.format())
-    .pipe(eslint.failAfterError());
-});
 
 gulp.task('clean', () => {
   return gulp.src(['lib', 'coverage'], { read: false })
     .pipe(clean());
 });
 
-gulp.task('babel', () => {
-  return gulp.src('src/**/*.js')
-    .pipe(sourcemaps.init())
-    .pipe(babel())
-    .pipe(sourcemaps.write('.'))
+gulp.task('typescript', function() {
+  let tsResult = gulp.src('src/**/*.ts')
+    .pipe(tsProject())
     .pipe(gulp.dest('lib'));
 });
 
@@ -50,7 +45,7 @@ gulp.task('watch', () => {
 });
 
 gulp.task('lint', (done) => {
-  runSequence('lint_src', 'lint_test', done);
+  runSequence('lint_src', done);
 });
 
 gulp.task('test', (done) => {
@@ -58,5 +53,5 @@ gulp.task('test', (done) => {
 });
 
 gulp.task('compile', (done) => {
-  runSequence('clean', 'babel', done);
+  runSequence('clean', 'typescript', done);
 });

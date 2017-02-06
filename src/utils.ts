@@ -1,6 +1,9 @@
 import inquirer from 'inquirer';
 import _ from 'lodash';
 import path from 'path';
+import {Promise} from "~inquirer~es6-promise";
+import {Question} from "inquirer";
+import {PNQuestion} from "./defs";
 
 export function createPromise() {
   let successResolve;
@@ -13,7 +16,7 @@ export function createPromise() {
   return { promise, reject: failureResolve, resolve: successResolve };
 }
 
-export function createPath(incomingPath) {
+export function createPath(incomingPath: string) {
   let folderPath = '';
 
   if (incomingPath) {
@@ -29,23 +32,23 @@ export function createPath(incomingPath) {
   return folderPath;
 }
 
-export function abstractedValidator(params = [], interactive) {
-  const response = {};
+export function abstractedValidator(params: Array<Question> = [], interactive: boolean) {
+  const response: any = {};
   let validationPassing = true; // optimism.
-  const questions = [];
+  const questions: Array<Question> = [];
 
-  const defaultValidator = (input) => {
+  const defaultValidator = (input: any) => {
     return (input !== '' && _.trim(input).length > 0);
   };
 
-  params.forEach((param) => {
+  params.forEach((param: PNQuestion) => {
     if (param.field && _.trim(param.field) !== '') {
       response[param.name] = _.trim(param.field);
     } else if (interactive) {
       questions.push({
         type: param.type,
         name: param.name,
-        message: param.question,
+        message: param.message,
         default: param.default,
         validate: param.validate || defaultValidator,
         choices: param.choices

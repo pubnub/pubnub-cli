@@ -15,8 +15,8 @@ program
   .command('validate [operations]', 'confirm that block is valid')
   .parse(process.argv);
 
-const operation = program.rawArgs[2];
+const operation = program.args[2];
 
 if (operation === 'associate') {
-  entryPoint.associate({ folderPath: createPath(program.rawArgs[3]) });
+  entryPoint.associate.perform({ folderPath: createPath(program.rawArgs[3]) });
 }

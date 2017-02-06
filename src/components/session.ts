@@ -1,12 +1,20 @@
 import os from 'os';
 import fs from 'fs';
-import colors from 'colors/safe';
+import colors from 'colors';
 import _ from 'lodash';
 import { createPromise, abstractedValidator } from '../utils';
+import Networking from "../networking";
 
-export default class {
+type constructor = { logger: any, networking: Networking, interactive: boolean };
 
-  constructor({ logger, networking, interactive = false }) {
+export default class SessionComponent {
+
+  logger: any;
+  networking: Networking;
+  sessionStorage: string;
+  interactive: boolean;
+
+  constructor({ logger, networking, interactive = false }: constructor) {
     this.logger = logger;
     this.networking = networking;
     this.sessionStorage = os.homedir() + '/.pubnub-cli';
@@ -100,7 +108,7 @@ export default class {
         const sessionToken = serverResponse.result.token;
 
         if (this.interactive) {
-          this._createSessionFile({ userId, sessionToken }).then(() => {
+          this.createSessionFile({ userId, sessionToken }).then(() => {
             this.logger.info('Login Succesful, token: ' + sessionToken + ' saved to home directory');
           });
         }
@@ -116,7 +124,7 @@ export default class {
   }
 
   deleteSession() {
-    return this._deleteSessonFile().then(() => {
+    return this.deleteSessionFile().then(() => {
       if (this.interactive) this.logger.info('PubNub Session Deleted');
     });
   }
@@ -129,8 +137,8 @@ export default class {
     });
   }
 
-  _createSessionFile({ sessionToken, userId }) {
-    return this._deleteSessonFile().then(() => {
+  private createSessionFile({ sessionToken, userId }) {
+    return this.deleteSessionFile().then(() => {
       return new Promise((resolve, reject) => {
         fs.writeFile(this.sessionStorage, JSON.stringify({ sessionToken, userId }), (err) => {
           if (err) reject(err); else resolve();
@@ -139,7 +147,7 @@ export default class {
     });
   }
 
-  _deleteSessonFile() {
+  private deleteSessionFile() {
     return new Promise((resolve, reject) => {
       fs.unlink(this.sessionStorage, (err) => {
         // silence file not found

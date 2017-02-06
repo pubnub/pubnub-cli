@@ -13,7 +13,7 @@ program
   .option('check', 'check session: check if session is alive')
   .parse(process.argv);
 
-const operation = program.rawArgs[2];
+const operation = program.args[2];
 
 if (!operation) process.exit(1);
 

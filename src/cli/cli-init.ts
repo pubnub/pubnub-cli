@@ -16,7 +16,7 @@ program
   .version(packageInfo.version)
   .parse(process.argv);
 
-const operation = program.rawArgs[2];
+const operation = program.args[2];
 
 if (!operation) {
   entryPoint.logger.error('operation not recognized');
