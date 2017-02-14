@@ -1,7 +1,8 @@
 import inquirer from 'inquirer';
 import _ from 'lodash';
 import path from 'path';
-import {Promise} from "~inquirer~es6-promise";
+// import {Promise} from "~inquirer~es6-promise";
+import {Promise} from "es6-promise";
 import {Question} from "inquirer";
 import {PNQuestion} from "./defs";
 

@@ -1,19 +1,17 @@
 {
     "compilerOptions": {
-        "module": "system",
+        "module": "commonjs",
         "noImplicitAny": true,
         "removeComments": true,
         "preserveConstEnums": true,
         "outDir": "lib",
         "sourceMap": true,
         "target": "es6",
-        "typeRoots" : ["./typings/globals", "./typings/modules"]
-    },
-    "include": [
-        "src/**/*"
-    ],
-    "exclude": [
-        "node_modules",
-        "**/*.spec.ts"
-    ]
+        "allowSyntheticDefaultImports": true,
+        "skipLibCheck": true,
+        "strictNullChecks": false,
+        "types": [
+            "node"
+        ]
+    }
 }

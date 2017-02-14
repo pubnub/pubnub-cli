@@ -1,14 +1,16 @@
 #! /usr/bin/env node
-import program from 'commander';
+import * as program from 'commander';
 
-import packageInfo from '../../package.json';
 import { createPath } from '../utils';
 import EntryPoint from '../index';
 
+const { version } = require('../../../package.json');
 const entryPoint = new EntryPoint({ isCLI: true });
 
+console.log(version);
+
 program
-  .version(packageInfo.version)
+  .version(version)
   .option('associate', 'associate the local block with a remote')
   .command('init [operations]', 'perform intialization operations')
   .command('session [operations]', 'perform operations related to sessions')

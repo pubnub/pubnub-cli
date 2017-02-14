@@ -1,7 +1,15 @@
 const sinon = require('sinon');
 const assert = require('assert');
 
-const Networking = require('./../lib/networking.js');
+var fs = require('fs'),
+    path = require('path');
+
+var dirString = path.dirname(fs.realpathSync(__filename));
+
+// output example: "/Users/jb/workspace/abtest"
+console.log('directory to start walking...', dirString);
+
+const Networking = require('../lib/networking.js');
 
 describe('#networking', () => {
   let networkingInstance;

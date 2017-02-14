@@ -7,6 +7,20 @@ import Networking from "../networking";
 
 type constructor = { logger: any, networking: Networking, interactive: boolean };
 
+interface IUserSession {
+    userId?: number;
+    sessionToken?: string;
+}
+
+interface ISessionValid {
+    sessionValid: boolean;
+}
+
+interface ISession {
+    email?: string;
+    password?: string;
+}
+
 export default class SessionComponent {
 
   logger: any;
@@ -21,7 +35,7 @@ export default class SessionComponent {
     this.interactive = interactive;
   }
 
-  checkSession({ userId, sessionToken } = {}) {
+  checkSession({ userId, sessionToken }: IUserSession = {}) {
     const abstractedPromise = createPromise();
 
     // abstract CLI // API
@@ -36,7 +50,7 @@ export default class SessionComponent {
       } else {
         fulfill({ userId, sessionToken });
       }
-    }).then((credentials) => {
+    }).then((credentials: IUserSession) => {
       this.networking.getApps({ sessionToken: credentials.sessionToken, ownerId: credentials.userId }, (err, result) => {
         // mask the error by checking the status code.
         if (this.interactive) {
@@ -58,7 +72,7 @@ export default class SessionComponent {
     const abstractedPromise = createPromise();
 
     this.checkSession()
-      .then((result) => {
+      .then((result: ISessionValid) => {
         if (result.sessionValid) {
           abstractedPromise.resolve(_.pick(result, 'sessionToken', 'ownerId'));
         } else {
@@ -80,7 +94,7 @@ export default class SessionComponent {
     return abstractedPromise.promise;
   }
 
-  createSession({ email, password } = {}) {
+    createSession({ email, password }: ISession = {}) {
     const abstractedPromise = createPromise();
     const inputParams = [
       {
@@ -97,8 +111,8 @@ export default class SessionComponent {
       }
     ];
 
-    abstractedValidator(inputParams, this.interactive).then((fields) => {
-      this.networking.createLoginToken({ email: fields.email, password: fields.password }, (err, serverResponse) => {
+    abstractedValidator(inputParams, this.interactive).then((fields: ISession) => {
+      this.networking.createLoginToken({ email: fields.email, password: fields.password }, (err: any, serverResponse: any) => {
         if (err) {
           if (this.interactive) this.logger.error(err);
           return abstractedPromise.reject(err);
@@ -137,7 +151,7 @@ export default class SessionComponent {
     });
   }
 
-  private createSessionFile({ sessionToken, userId }) {
+  private createSessionFile({ sessionToken, userId }: IUserSession) {
     return this.deleteSessionFile().then(() => {
       return new Promise((resolve, reject) => {
         fs.writeFile(this.sessionStorage, JSON.stringify({ sessionToken, userId }), (err) => {

@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 
-import colors from 'colors';
+import * as colors from 'colors';
 import _ from 'lodash';
 import inquirer from 'inquirer';
 
