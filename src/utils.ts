@@ -6,7 +6,9 @@ import {Promise} from "es6-promise";
 import {Question} from "inquirer";
 import {PNQuestion} from "./defs";
 
-export function createPromise() {
+type PromiseObject = { promise: Promise<any>, reject: (err: any) => any, resolve: (val: any) => any };
+
+export function createPromise(): PromiseObject {
   let successResolve;
   let failureResolve;
   const promise = new Promise((fulfill, reject) => {
