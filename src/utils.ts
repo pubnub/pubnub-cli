@@ -1,9 +1,9 @@
-import inquirer from 'inquirer';
-import _ from 'lodash';
-import path from 'path';
 // import {Promise} from "~inquirer~es6-promise";
 import {Promise} from "es6-promise";
+import inquirer from "inquirer";
 import {Question} from "inquirer";
+import _ from "lodash";
+import path from "path";
 import {PNQuestion} from "./defs";
 
 type PromiseObject = { promise: Promise<any>, reject: (err: any) => any, resolve: (val: any) => any };
@@ -20,7 +20,7 @@ export function createPromise(): PromiseObject {
 }
 
 export function createPath(incomingPath: string) {
-  let folderPath = '';
+  let folderPath = "";
 
   if (incomingPath) {
     if (path.isAbsolute(incomingPath)) {
@@ -29,23 +29,23 @@ export function createPath(incomingPath: string) {
       path.join(process.cwd(), incomingPath);
     }
   } else {
-    folderPath = path.join(process.cwd(), '.');
+    folderPath = path.join(process.cwd(), ".");
   }
 
   return folderPath;
 }
 
-export function abstractedValidator(params: Array<Question> = [], interactive: boolean) {
+export function abstractedValidator(params: Question[] = [], interactive: boolean) {
   const response: any = {};
   let validationPassing = true; // optimism.
-  const questions: Array<Question> = [];
+  const questions: Question[] = [];
 
   const defaultValidator = (input: any) => {
-    return (input !== '' && _.trim(input).length > 0);
+    return (input !== "" && _.trim(input).length > 0);
   };
 
   params.forEach((param: PNQuestion) => {
-    if (param.field && _.trim(param.field) !== '') {
+    if (param.field && _.trim(param.field) !== "") {
       response[param.name] = _.trim(param.field);
     } else if (interactive) {
       questions.push({
@@ -54,7 +54,7 @@ export function abstractedValidator(params: Array<Question> = [], interactive: b
         message: param.message,
         default: param.default,
         validate: param.validate || defaultValidator,
-        choices: param.choices
+        choices: param.choices,
       });
     } else {
       validationPassing = false;

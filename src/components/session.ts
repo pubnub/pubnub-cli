@@ -1,9 +1,9 @@
-import os from 'os';
-import fs from 'fs';
-import colors from 'colors';
-import _ from 'lodash';
-import { createPromise, abstractedValidator } from '../utils';
+import colors from "colors";
+import fs from "fs";
+import _ from "lodash";
+import os from "os";
 import Networking from "../networking";
+import { abstractedValidator, createPromise } from "../utils";
 
 type constructor = { logger: any, networking: Networking, interactive: boolean };
 
@@ -31,7 +31,7 @@ export default class SessionComponent {
   constructor({ logger, networking, interactive = false }: constructor) {
     this.logger = logger;
     this.networking = networking;
-    this.sessionStorage = os.homedir() + '/.pubnub-cli';
+    this.sessionStorage = os.homedir() + "/.pubnub-cli";
     this.interactive = interactive;
   }
 
@@ -44,7 +44,7 @@ export default class SessionComponent {
         this._fetchSessionFile()
           .then((credentials) => { fulfill(credentials); })
           .catch((error) => {
-            this.logger.info('Session does not exist; credentials found failed to load', error);
+            this.logger.info("Session does not exist; credentials found failed to load", error);
             return;
           });
       } else {
@@ -54,8 +54,8 @@ export default class SessionComponent {
       this.networking.getApps({ sessionToken: credentials.sessionToken, ownerId: credentials.userId }, (err, result) => {
         // mask the error by checking the status code.
         if (this.interactive) {
-          if (result) this.logger.info(colors.green('session is valid'));
-          else this.logger.info(colors.red('session is invalid'));
+          if (result) this.logger.info(colors.green("session is valid"));
+          else this.logger.info(colors.red("session is invalid"));
         }
 
         abstractedPromise.resolve({ sessionValid: result !== undefined, sessionToken: credentials.sessionToken, userId: credentials.userId });
@@ -74,11 +74,11 @@ export default class SessionComponent {
     this.checkSession()
       .then((result: ISessionValid) => {
         if (result.sessionValid) {
-          abstractedPromise.resolve(_.pick(result, 'sessionToken', 'ownerId'));
+          abstractedPromise.resolve(_.pick(result, "sessionToken", "ownerId"));
         } else {
           this.createSession()
             .then((response) => {
-              abstractedPromise.resolve(_.pick(response, 'sessionToken', 'ownerId'));
+              abstractedPromise.resolve(_.pick(response, "sessionToken", "ownerId"));
             })
             .catch((err) => {
               abstractedPromise.reject(err);
@@ -99,16 +99,16 @@ export default class SessionComponent {
     const inputParams = [
       {
         field: email,
-        name: 'email',
-        question: 'Please enter your PubNub email',
-        type: 'input'
+        name: "email",
+        question: "Please enter your PubNub email",
+        type: "input",
       },
       {
         field: password,
-        name: 'password',
-        question: 'Please enter your PubNub password',
-        type: 'password'
-      }
+        name: "password",
+        question: "Please enter your PubNub password",
+        type: "password",
+      },
     ];
 
     abstractedValidator(inputParams, this.interactive).then((fields: ISession) => {
@@ -123,7 +123,7 @@ export default class SessionComponent {
 
         if (this.interactive) {
           this.createSessionFile({ userId, sessionToken }).then(() => {
-            this.logger.info('Login Succesful, token: ' + sessionToken + ' saved to home directory');
+            this.logger.info("Login Succesful, token: " + sessionToken + " saved to home directory");
           });
         }
 
@@ -139,13 +139,13 @@ export default class SessionComponent {
 
   deleteSession() {
     return this.deleteSessionFile().then(() => {
-      if (this.interactive) this.logger.info('PubNub Session Deleted');
+      if (this.interactive) this.logger.info("PubNub Session Deleted");
     });
   }
 
   _fetchSessionFile() {
     return new Promise((resolve) => {
-      fs.readFile(this.sessionStorage, 'utf8', (err, data) => {
+      fs.readFile(this.sessionStorage, "utf8", (err, data) => {
         if (err) resolve({}); else resolve(JSON.parse(data));
       });
     });
@@ -165,7 +165,7 @@ export default class SessionComponent {
     return new Promise((resolve, reject) => {
       fs.unlink(this.sessionStorage, (err) => {
         // silence file not found
-        if (err && err.code !== 'ENOENT') reject(err); else resolve();
+        if (err && err.code !== "ENOENT") reject(err); else resolve();
       });
     });
   }

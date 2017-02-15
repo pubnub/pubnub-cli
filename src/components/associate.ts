@@ -2,7 +2,7 @@ import Networking from "../networking";
 import SessionComponent from "./session";
 
 type constructor = { logger: any, networking: Networking, interactive: boolean, sessionComponent: SessionComponent };
-type performRequest = { folderPath: string }
+type performRequest = { folderPath: string };
 
 export default class AssociateComponent {
 
@@ -21,7 +21,7 @@ export default class AssociateComponent {
   perform({ folderPath }: performRequest) {
     // disable this method for non interactive use.
     if (!this.interactive) {
-      this.logger.error('#createBlock not supported for non-interactive mode');
+      this.logger.error("#createBlock not supported for non-interactive mode");
       return;
     }
 
@@ -33,6 +33,6 @@ export default class AssociateComponent {
       .catch((error) => {
         console.log(error);
         // catch here
-      })
+      });
   }
 }
