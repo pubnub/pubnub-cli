@@ -1,30 +1,39 @@
-#! /usr/bin/env node
-const program = require("commander");
+#!/usr/bin/env node
 
-const EntryPoint = require("../index.js");
-const packageInfo = require("../../package.json");
+import * as program from "commander";
+import Session from "../components/session";
+const { version } = require("../../package.json");
 
-const entryPoint = new EntryPoint({ isCLI: true });
+const handleCreate = (email: string, password: string) => {
+    console.log(`create called with email "${email}" and password "${password}"`);
+    Session.create({ email, password })
+};
+
+const handleDelete = () => {
+    console.log("delete called");
+};
+
+const handleCheck = () => {
+    console.log("check called");
+};
 
 program
-  .version(packageInfo.version)
-  .option("create [email] [password]", "create session: email & password is optional and can be supplied in runtime.")
-  .option("delete", "delete session: delete the stored credentials if they exist.")
-  .option("check", "check session: check if session is alive")
-  .parse(process.argv);
+    .version(version);
 
-const operation = program.args[2];
+program
+    .command("create <email> <password>")
+    .description("create session: email & password is optional and can be supplied in runtime.")
+    .action(handleCreate);
 
-if (!operation) process.exit(1);
+program
+    .command("delete")
+    .description("deletes stuff")
+    .action(handleDelete);
 
-if (operation === "create") {
-  const email = program.rawArgs[3];
-  const password = program.rawArgs[4];
-  entryPoint.session.create({ email, password });
-} else if (operation === "delete") {
-  entryPoint.session.delete();
-} else if (operation === "check") {
-  entryPoint.session.check();
-} else {
-  entryPoint.logger.error("operation not recognized");
-}
+program
+    .command("check")
+    .description("checks stuff")
+    .action(handleCheck);
+
+program
+    .parse(process.argv);

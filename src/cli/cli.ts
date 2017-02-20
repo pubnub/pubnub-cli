@@ -1,24 +1,15 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
+
 import * as program from "commander";
-
-import EntryPoint from "../index";
-import { createPath } from "../utils";
-
-const { version } = require("../../../package.json");
-const entryPoint = new EntryPoint({ isCLI: true });
-
-console.log(version);
+const { version } = require("../../package.json");
 
 program
-  .version(version)
-  .option("associate", "associate the local block with a remote")
-  .command("init [operations]", "perform intialization operations")
-  .command("session [operations]", "perform operations related to sessions")
-  .command("validate [operations]", "confirm that block is valid")
-  .parse(process.argv);
+    .version(version)
+    .command("init [operations]", "perform intialization operations")
+    .command("session [operations]", "perform operations related to sessions")
+    //TODO: .command("validate [operations]", "confirm that block is valid")
+    .command("blocks [operations]", "perform operations related to blocks")
+    .command("apps [operations]", "perform operations related to blocks")
 
-const operation = program.args[2];
-
-if (operation === "associate") {
-  entryPoint.associate.perform({ folderPath: createPath(program.rawArgs[3]) });
-}
+program
+    .parse(process.argv);

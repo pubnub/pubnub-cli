@@ -1,17 +1,16 @@
 {
     "compilerOptions": {
+        "target": "es5",
         "module": "commonjs",
+        "outDir": "./lib",
+        "rootDir": "./src",
+        "lib": [
+            "ES2015"
+        ],
+        "alwaysStrict": true,
         "noImplicitAny": true,
-        "removeComments": true,
-        "preserveConstEnums": true,
-        "outDir": "lib",
-        "sourceMap": true,
-        "target": "es6",
-        "allowSyntheticDefaultImports": true,
-        "skipLibCheck": true,
         "strictNullChecks": false,
-        "types": [
-            "node"
-        ]
+        "noUnusedLocals": true,
+        "forceConsistentCasingInFileNames": true
     }
 }
