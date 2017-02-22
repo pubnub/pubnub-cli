@@ -2,6 +2,8 @@
 
 import * as program from "commander";
 import Session from "../components/session";
+import Files from "../components/files"
+import API from "../components/api";
 const { version } = require("../../package.json");
 
 const handleCreate = (email: string, password: string) => {
@@ -10,11 +12,19 @@ const handleCreate = (email: string, password: string) => {
 };
 
 const handleDelete = () => {
-    console.log("delete called");
+    console.log("Removing session...");
+    Files.removeSessionFile();
+    console.log("Removed!");
 };
 
 const handleCheck = () => {
-    console.log("check called");
+    console.log("Checking session...");
+    //TODO: Handle lack of file nicer than throwing error
+    API.getApps({}).then((response) => {
+        console.log("Session valid!");
+    }).catch((_error) => {
+        console.log("Invalid session. Create new session with `pubnub-cli session create`")
+    });
 };
 
 program
@@ -27,12 +37,12 @@ program
 
 program
     .command("delete")
-    .description("deletes stuff")
+    .description("deletes existing session.")
     .action(handleDelete);
 
 program
     .command("check")
-    .description("checks stuff")
+    .description("checks is session exists and if it's valid.")
     .action(handleCheck);
 
 program

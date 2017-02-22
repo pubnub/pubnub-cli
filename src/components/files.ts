@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import {maybe, Maybe} from "@grayfox/tsmonad";
+import Session from "./session"
 
 export function validateBlockDirectory(blockPath: string): string {
     console.log(`Validating path: ${blockPath}`);
@@ -14,6 +15,10 @@ export function validateBlockDirectory(blockPath: string): string {
 }
 
 class FilesComponent {
+    public removeSessionFile(): boolean{
+        return this.removeFile(Session._sessionFilePath);
+    }
+
     public readJsonFile<T>(filePath: string): Maybe<T> {
         console.log(`Reading file ${filePath}`);
         if (fs.existsSync(filePath)) {
@@ -43,6 +48,13 @@ class FilesComponent {
         fs.writeFileSync(filePath, JSON.stringify(json));
 
         return json
+    }
+
+    private removeFile(filePath: string): boolean {
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath)
+        }
+        return true
     }
 }
 

@@ -42,9 +42,6 @@ const handleCreateBlock = ({keyId, dir}: any) => {
 
 const handleUpdateBlock = () => {
     console.log("Performing handleUpdateBlock");
-    // API.getApps({}).then((response) => {
-    //     console.log(response);
-    // });
 };
 
 program
