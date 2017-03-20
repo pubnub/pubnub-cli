@@ -345,7 +345,8 @@ cli.main(function (args, options) {
             if (err) {
                 cb(null);
             } else {
-                self.session = session;
+                self.session = session.session;
+                self.accounts = session.accounts;
                 cb(null);
             }
 
@@ -393,9 +394,10 @@ cli.main(function (args, options) {
                 } else {
 
                     cli.info('Writing session to ' + sessionFile);
-                    fs.outputJson(sessionFile, body.result,
+                    fs.outputJson(sessionFile, { session: body.session, accounts: body.accounts },
                         { spaces: 4 }, function (err2) {
-                            self.session = body.result;
+                            self.session = body.session;
+                            self.accounts = body.accounts;
                             cb(err2);
                         }
                     );
@@ -530,7 +532,7 @@ cli.main(function (args, options) {
 
         api.request('get', ['api', 'apps'], {
             qs: {
-                owner_id: self.session.user.id
+                owner_id: self.accounts.accounts[0].id
             }
         }, function (err, data) {
 
@@ -1068,6 +1070,8 @@ cli.main(function (args, options) {
             }
 
             if (id) {
+                data.block_id = id;
+                data.type = 'before-publish';
 
                 // if id exists, update (put)
                 api.request('put', ['api', 'v1', 'blocks', 'key',
