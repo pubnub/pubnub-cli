@@ -903,10 +903,6 @@ cli.main(function (args, options) {
 
                 eh.file = eh.event + '/' + slug(eh.name) + '.js';
 
-                console.log("workingDir", workingDir);
-                console.log("options", options);
-                console.log("eh", eh);
-
                 var fullPath = workingDir + options.file + eh.file;
 
                 // try to find event handler with same id
