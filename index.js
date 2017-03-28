@@ -345,12 +345,23 @@ cli.main(function (args, options) {
             if (err) {
                 cb(null);
             } else {
-                self.session = session;
-                cb(null);
+                self.session = session.session;
+                self.accounts = session.accounts;
+
+                const choices = self.accounts.accounts.map((account, i) => { return { name: `${account.properties.company} ${account.id} (${i == 0 ? "owner" : self.accounts.permissions[`account-${account.id}`].name})`, value: account } });
+
+                inquirer.prompt([{
+                    type: 'list',
+                    name: 'key',
+                    message: 'Select an account. First one is your main account.',
+                    choices: choices
+                }]).then(function (answers) {
+                    console.log(answers);
+                    self.account = answers.key;
+                    cb(null);
+                });
             }
-
         });
-
     };
 
     // deletes the local session file
@@ -393,9 +404,10 @@ cli.main(function (args, options) {
                 } else {
 
                     cli.info('Writing session to ' + sessionFile);
-                    fs.outputJson(sessionFile, body.result,
+                    fs.outputJson(sessionFile, { session: body.session, accounts: body.accounts },
                         { spaces: 4 }, function (err2) {
-                            self.session = body.result;
+                            self.session = body.session;
+                            self.accounts = body.accounts;
                             cb(err2);
                         }
                     );
@@ -530,7 +542,7 @@ cli.main(function (args, options) {
 
         api.request('get', ['api', 'apps'], {
             qs: {
-                owner_id: self.session.user.id
+                owner_id: self.account.id
             }
         }, function (err, data) {
 
@@ -890,6 +902,7 @@ cli.main(function (args, options) {
                 cli.info('Working on ' + eh.name);
 
                 eh.file = eh.event + '/' + slug(eh.name) + '.js';
+
                 var fullPath = workingDir + options.file + eh.file;
 
                 // try to find event handler with same id
@@ -1061,6 +1074,9 @@ cli.main(function (args, options) {
 
             var id = data._id;
 
+            data.id = self.account.id;
+            data.key_id = self.blockRemote.key_id;
+
             // these properties don't exist on server, so don't send them
             delete data._id;
             if (data.file) {
@@ -1068,6 +1084,8 @@ cli.main(function (args, options) {
             }
 
             if (id) {
+                data.block_id = self.blockRemote.id;
+                data.type = 'js';
 
                 // if id exists, update (put)
                 api.request('put', ['api', 'v1', 'blocks', 'key',
