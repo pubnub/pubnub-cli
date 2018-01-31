@@ -12,6 +12,7 @@ require('shelljs/global'); // ability to run shell commands
 
 // cli arguments and commands
 cli.parse({
+    account: ['a', 'Account ID', 'int'],
     block: ['b', 'Block ID', 'int'],
     key: ['k', 'Subscribe Key ID', 'int'],
     file: ['f', 'A block file', 'path'],
@@ -523,81 +524,201 @@ cli.main(function (args, options) {
     self.keyGet = function (cb) {
 
         cli.debug('keyGet');
-
-        // looks first in options, then in remote block, then local block
-        var givenKey = options.key ||
-            self.blockRemote.key_id || self.blockLocal._key_id;
-
-        api.request('get', ['api', 'apps'], {
+        
+        console.log('---> CALLING ACCOUNTS');
+        api.request('get', ['api', 'accounts'], {
             qs: {
-                owner_id: self.session.user.id
+                user_id: self.session.user.id
+            },
+            headers:{
+                Accept: 'application/json'
             }
         }, function (err, data) {
+            // Print the accounts
+            // console.log('--> PRINT: ACCOUNTS:', JSON.stringify(data, null, 3));
 
-            // if key is supplied through cli or file
-            if (givenKey) {
+            // look for the key in options
+            // then remote block, then local block
+            var givenAccount = options.account
+            console.log('--> ACCOUNT', givenAccount);
 
-                // we need to map the key id to the key object
-                var paramKey = false;
+            if (!givenAccount)
+            {
+                // create an interactive key selection -> Accounts
+                var choices = [];
+                
+                // loop through apps
+                // console.log('DEBUG: ACCOUNTS', JSON.stringify(data.result.accounts, null, 3));
 
-                data.result.forEach(function (app) {
+                let accounts = data.result.accounts;
+                accounts.forEach(function (account) {
 
-                    app.keys.forEach(function (value) {
-
-                        if (givenKey === value.id) {
-                            paramKey = value;
-                        }
-
+                    choices.push({
+                        name: account.properties['company'] + ', ' + account.id,
+                        value: account.id
                     });
 
                 });
 
-                if (!paramKey) {
-                    cb('Invalid key ID');
-                } else {
-                    self.key = paramKey;
-                    cb(err);
+                cli.ok('Which Account you wish to work on?');
+
+                inquirer.prompt([{
+                    type: 'list',
+                    name: 'account',
+                    message: 'Select an account',
+                    choices: choices
+                }]).then(function (answers) {
+
+                    givenAccount = answers['account'];
+                    console.log('--> givenAccount',givenAccount);
+                });
+            }
+
+            // START ---------                
+            api.request('get', ['api', 'apps'], {
+                qs: {
+                    owner_id: givenAccount
                 }
+            }, function (err, data) {
 
-            } else {
+                // console.log('DEBUG DATA-2:', JSON.stringify(data.result, null, 1));
+                if (err) {
+                    console.log('ERROR DATA-2:',JSON.stringify(err));
+                }
+                
+                // looks first in options, then in remote block, then local block
+                // var givenKey = options.key || self.blockRemote.key_id || self.blockLocal._key_id;
+                var givenKey = options.key;
+                console.log('givenKey 01',givenKey);
 
-                // create an interactive key selection
-                var choices = [];
+                let apps = data.result;
+                apps.forEach(function (app) {
+    
+                    let keys = app.keys;
+                    keys.forEach(function (key){
+                        console.log('app.id', app.id, 'key.app_id', key.app_id, 'key.id', key.id,'[givenKey]', givenKey, 'key.product_id', key.product_id);
+                        // console.log('KEY', key);
+                    })
+                    
+                });
+                
+                console.log('givenKey 02',givenKey);
+                if (!givenKey)
+                {
+                    console.log('---> ---> CHOICES 01');
+                    // create an interactive key selection
+                    var choices = [];
 
-                // loop through apps
-                data.result.forEach(function (value) {
+                    // loop through apps
+                    // console.log('DEBUG: DATA', data);
 
-                    choices.push(new inquirer.Separator('---'
-                        + value.name));
+                    data.result.forEach(function (value) {
 
-                    // loop through keys in app
-                    value.keys.forEach(function (value2) {
+                        choices.push(new inquirer.Separator('---'
+                            + value.name));
 
-                        choices.push({
-                            name: value2.properties.name
-                                || value2.subscribe_key,
-                            value: value2
+                        // loop through keys in app
+                        value.keys.forEach(function (value2) {
+
+                            choices.push({
+                                name: value2.properties.name + "ID:" + value2.id,
+                                value: value2
+                            });
+
                         });
 
                     });
 
-                });
+                    cli.ok('Which KeySet are you working on?');
 
-                cli.ok('Which app are you working on?');
+                    inquirer.prompt([{
+                        type: 'list',
+                        name: 'key',
+                        message: 'Select a key',
+                        choices: choices
+                    }]).then(function (answers) {
+                        self.key = answers.key;
+                        console.log('--> self.key: ',self.key.id);
+                        cb(err);
+                    });
+                }
 
-                inquirer.prompt([{
-                    type: 'list',
-                    name: 'key',
-                    message: 'Select a key',
-                    choices: choices
-                }]).then(function (answers) {
-                    self.key = answers.key;
-                    cb(err);
-                });
+                // console.log('--> givenKey', givenKey);
 
-            }
+                // if key is supplied through cli or file
+                if(1) {
 
-        });
+                    // if (0) {
+                    if (givenKey) {
+                        
+                        // we need to map the key id to the key object
+                        var paramKey = false;
+
+                        data.result.forEach(function (app) {
+
+                            app.keys.forEach(function (value) {
+
+                                if (givenKey === value.id) {
+                                    paramKey = value;
+                                }
+
+                            });
+
+                        });
+
+                        if (!paramKey) {
+                            cb('Invalid key ID');
+                        } else {
+                            self.key = paramKey;
+                            cb(err);
+                        }
+
+                    } else {
+
+                        console.log('---> ---> CHOICES 02');
+                        // create an interactive key selection
+                        var choices = [];
+
+                        // loop through apps
+                        // console.log('DEBUG: DATA', data);
+
+                        data.result.forEach(function (value) {
+
+                            choices.push(new inquirer.Separator('---'
+                                + value.name));
+
+                            // loop through keys in app
+                            value.keys.forEach(function (value2) {
+
+                                choices.push({
+                                    name: value2.properties.name + "ID:" + value2.id,
+                                    value: value2
+                                });
+
+                            });
+
+                        });
+
+                        cli.ok('Which KeySet are you working on?');
+
+                        inquirer.prompt([{
+                            type: 'list',
+                            name: 'key',
+                            message: 'Select a key',
+                            choices: choices
+                        }]).then(function (answers) {
+                            self.key = answers.key;
+                            console.log('--> self.key: ',self.key.id);
+                            cb(err);
+                        });
+
+                    }
+                }                    
+
+            });                
+            // END ---------
+            
+        });        
 
     };
 
@@ -624,6 +745,8 @@ cli.main(function (args, options) {
 
         api.request('get', ['api', 'v1', 'blocks',
             'key', self.key.id, 'block'], {}, function (err, result) {
+                
+                console.log('--> KEY_ID', self.key.id);
 
                 if (err) {
                     cb(err);
@@ -631,11 +754,14 @@ cli.main(function (args, options) {
 
                     // if we force upsert, forget prompts
                     if (options.insert) {
+                        console('-------> createcb');
                         createcb();
                     } else if (givenBlock) {
 
                         // if block is supplied through cli
                         var paramBlock = false;
+
+                        console.log('---> result.payload:', result.payload);
 
                         result.payload.forEach(function (value) {
 
