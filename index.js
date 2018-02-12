@@ -520,6 +520,25 @@ cli.main(function (args, options) {
     };
 
     // sets self.key
+    self.accountGet = function (cb) {
+
+        cli.debug('appGet');
+
+        api.request('get', ['api', 'accounts'], {
+            qs: {
+                user_id: self.session.user.id
+            }
+        }, function (err, data) {
+
+            console.log(err);
+            console.log(data.result.accounts);
+            cb(data);
+
+        });
+
+    };
+
+    // sets self.key
     self.keyGet = function (cb) {
 
         cli.debug('keyGet');
@@ -1154,7 +1173,7 @@ cli.main(function (args, options) {
         },
         init: {
             functions: ['sessionFileGet', 'sessionGet',
-                'blockFileCreate', 'blockRead', 'keyGet', 'blockGet',
+                'blockFileCreate', 'blockRead', 'accountGet', 'keyGet', 'blockGet',
                 'blockWrite', 'eventHandlerWrite'],
             success: 'New block.json written to disk.'
         },
