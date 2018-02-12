@@ -82,6 +82,7 @@ cli.main(function (args, options) {
     self.blockLocal = false;       // the local block file
     self.blockRemote = false;             // the remove block json object
     self.key = false;               // the selected key object
+    self.account = false;
     self.eventHandler = false;     // the selected event handler object
 
     self.blockFileRequired = false;
@@ -519,10 +520,13 @@ cli.main(function (args, options) {
 
     };
 
-    // sets self.key
+    // sets self.account
     self.accountGet = function (cb) {
 
-        cli.debug('appGet');
+        cli.debug('accountGet');
+
+        // looks first in options
+        var givenKey = options.account || false;
 
         api.request('get', ['api', 'accounts'], {
             qs: {
@@ -530,9 +534,55 @@ cli.main(function (args, options) {
             }
         }, function (err, data) {
 
-            console.log(err);
-            console.log(data.result.accounts);
-            cb(data);
+            console.log(data)
+
+            // if key is supplied through cli or file
+            if (givenKey) {
+
+                let tempAccount = false;
+                data.result.accounts.forEach(function (value) {
+
+                    if (givenKey === value.id) {
+                        tempAccount = value;
+                    }
+
+                });
+
+                if (!tempAccount) {
+                    cb('Invalid account ID');
+                } else {
+                    self.account = tempAccount;
+                    cb(err);
+                }
+
+            } else {
+
+                // create an interactive account selection
+                var choices = [];
+
+                // loop through accounts
+                data.result.accounts.forEach(function (value) {
+
+                    choices.push({
+                        name: value.properties.company || value.owner_id,
+                        value: value
+                    });
+
+                });
+
+                cli.ok('Which account?');
+
+                inquirer.prompt([{
+                    type: 'list',
+                    name: 'account',
+                    message: 'Select an Account',
+                    choices: choices
+                }]).then(function (answers) {
+                    self.account = answers.account;
+                    cb(err);
+                });
+
+            }
 
         });
 
@@ -549,7 +599,7 @@ cli.main(function (args, options) {
 
         api.request('get', ['api', 'apps'], {
             qs: {
-                owner_id: self.session.user.id
+                owner_id: self.account.id
             }
         }, function (err, data) {
 
@@ -1173,26 +1223,26 @@ cli.main(function (args, options) {
         },
         init: {
             functions: ['sessionFileGet', 'sessionGet',
-                'blockFileCreate', 'blockRead', 'accountGet', 'keyGet', 'blockGet',
-                'blockWrite', 'eventHandlerWrite'],
+                'blockFileCreate', 'blockRead', 'accountGet', 'keyGet',
+                'blockGet', 'blockWrite', 'eventHandlerWrite'],
             success: 'New block.json written to disk.'
         },
         push: {
             functions: ['sessionFileGet', 'sessionGet', 'blockRead',
-                'keyGet', 'blockGet', 'blockComplete',
+                'accountGet', 'keyGet', 'blockGet', 'blockComplete',
                 'eventHandlerComplete', 'eventHandlerPush',
                 'blockPush'],
             success: 'Block pushed'
         },
         pull: {
             functions: ['sessionFileGet', 'sessionGet', 'requireInit',
-                'blockRead', 'keyGet', 'blockGet', 'blockWrite',
+                'blockRead', 'accountGet', 'keyGet', 'blockGet', 'blockWrite',
                 'eventHandlerWrite'],
             success: 'Local block.json updated with remote data.'
         },
         start: {
             functions: ['sessionFileGet', 'sessionGet', 'blockRead',
-                'keyGet', 'blockStart'],
+            'accountGet', 'keyGet', 'blockStart'],
             success: 'Block started'
         },
         stop: {

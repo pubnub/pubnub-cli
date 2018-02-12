@@ -1,1 +1,18 @@
-{}
+{
+    "_key_id": 430811,
+    "_id": 20289,
+    "name": "test",
+    "description": "asdfasdf",
+    "event_handlers": [
+        {
+            "name": "test",
+            "event": "js-before-publish",
+            "channels": "test",
+            "file": "js-before-publish/test.js",
+            "output": "blocks-output-D9QabZnbg9Cjj74MezmS.49514545570575683",
+            "block_id": 20289,
+            "type": "js",
+            "_id": 20695
+        }
+    ]
+}
