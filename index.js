@@ -1142,7 +1142,6 @@ cli.main(function (args, options) {
             data.id = id;
             data.key_id = self.blockRemote.key_id;
 
-
             if (id) {
 
                 data.block_id = self.blockRemote.id;
