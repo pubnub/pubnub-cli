@@ -1136,6 +1136,10 @@ cli.main(function (args, options) {
                 delete data.file;
             }
 
+            data.block_id = self.blockRemote.id;
+            data.key_id = self.blockRemote.key_id;
+            data.type = 'js';
+
             if (id) {
 
                 // if id exists, update (put)
@@ -1145,11 +1149,6 @@ cli.main(function (args, options) {
                     }, done);
 
             } else {
-
-                // of id does not exist (update)
-                data.block_id = self.blockRemote.id;
-                data.key_id = self.blockRemote.key_id;
-                data.type = 'js';
 
                 api.request('post', ['api', 'v1', 'blocks', 'key',
                     self.blockRemote.key_id, 'event_handler'], {

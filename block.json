@@ -5,14 +5,12 @@
     "description": "asdfasdf",
     "event_handlers": [
         {
-            "name": "test",
+            "_id": 20695,
+            "name": "sadfasdf",
             "event": "js-before-publish",
             "channels": "test",
-            "file": "js-before-publish/test.js",
-            "output": "blocks-output-D9QabZnbg9Cjj74MezmS.49514545570575683",
-            "block_id": 20289,
-            "type": "js",
-            "_id": 20695
+            "file": "js-before-publish/sadfasdf.js",
+            "output": "blocks-output-D9QabZnbg9Cjj74MezmS.49514545570575683"
         }
     ]
 }
