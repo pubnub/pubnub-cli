@@ -95,6 +95,7 @@ cli.main(function (args, options) {
     // pubnub-api is a custom api client for portal related operations
     var api = require('./lib/pubnub-api')({
         debug: true,
+        debugLogger: cli.debug,
         endpoint: self.env.host
     });
 
