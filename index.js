@@ -1136,11 +1136,16 @@ cli.main(function (args, options) {
                 delete data.file;
             }
 
-            data.block_id = self.blockRemote.id;
+            data.id = id;
             data.key_id = self.blockRemote.key_id;
-            data.type = 'js';
+
 
             if (id) {
+
+                data.block_id = self.blockRemote.id;
+                data.type = 'js';
+
+                console.log(JSON.stringify(data));
 
                 // if id exists, update (put)
                 api.request('put', ['api', 'v1', 'blocks', 'key',
