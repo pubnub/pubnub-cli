@@ -261,7 +261,7 @@ cli.main(function (args, options) {
             api.request('post',
                 ['api', 'v1', 'blocks', 'key', key.id, 'block'],
                 {
-                    form: block
+                    body: block
                 }, function (err, data) {
 
                     cli.ok('Block Created');
@@ -286,7 +286,7 @@ cli.main(function (args, options) {
 
             api.request('post', ['api', 'v1', 'blocks', 'key',
                 block.key_id, 'event_handler'], {
-                    form: eh
+                    body: eh
                 }, function (err) {
 
                     cli.ok('Event Handler Created');
@@ -803,9 +803,12 @@ cli.main(function (args, options) {
 
         cli.debug('blockPush');
 
+        self.blockLocal.block_id = self.blockLocal._id;
+        self.blockLocal.id = self.blockLocal._id;
+
         api.request('put', ['api', 'v1', 'blocks', 'key',
             self.blockRemote.key_id, 'block', self.blockRemote.id], {
-                form: self.blockLocal
+                body: self.blockLocal
             }, function (err) {
                 cb(err ? err.message : null);
             }
@@ -1145,8 +1148,6 @@ cli.main(function (args, options) {
                 data.block_id = self.blockRemote.id;
                 data.type = 'js';
 
-                console.log(JSON.stringify(data));
-
                 // if id exists, update (put)
                 api.request('put', ['api', 'v1', 'blocks', 'key',
                     self.blockRemote.key_id, 'event_handler', id], {
@@ -1157,7 +1158,7 @@ cli.main(function (args, options) {
 
                 api.request('post', ['api', 'v1', 'blocks', 'key',
                     self.blockRemote.key_id, 'event_handler'], {
-                        form: data
+                        body: data
                     }, done);
 
             }
