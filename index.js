@@ -1150,7 +1150,7 @@ cli.main(function (args, options) {
                 // if id exists, update (put)
                 api.request('put', ['api', 'v1', 'blocks', 'key',
                     self.blockRemote.key_id, 'event_handler', id], {
-                        form: data
+                        body: data
                     }, done);
 
             } else {
