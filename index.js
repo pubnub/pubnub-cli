@@ -15,7 +15,6 @@ cli.parse({
     block: ['b', 'Block ID', 'int'],
     key: ['k', 'Subscribe Key ID', 'int'],
     file: ['f', 'A block file', 'path'],
-    env: ['e', 'An environment [bronze, silver, gold, prod]', 'string'],
     email: ['m', 'Email', 'string'],
     insert: ['n', 'Insert Mode. Create new blocks and skip prompts.', true,
         false],
@@ -88,7 +87,7 @@ cli.main(function (args, options) {
     self.blockFileRequired = false;
 
     // specify the required environment
-    options.env = options.env || 'prod';
+    options.env = 'prod';
 
     self.env = envs[options.env];   // map the env string to an object
 
