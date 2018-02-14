@@ -18,6 +18,7 @@ cli.parse({
     email: ['m', 'Email', 'string'],
     insert: ['n', 'Insert Mode. Create new blocks and skip prompts.', true,
         false],
+    account: ['a', 'Account ID', 'int'],
     password: ['p', 'Password', 'string']
 },
 ['login', 'logout', 'start', 'stop', 'init', 'push', 'pull']);
@@ -317,6 +318,9 @@ cli.main(function (args, options) {
         if (options.file && options.file !== '/') {
             opts.f = options.file;
         }
+        if (self.account) {
+            opts.a = self.account.id;
+        }
 
         if (Object.keys(opts).length) {
 
@@ -534,12 +538,11 @@ cli.main(function (args, options) {
             }
         }, function (err, data) {
 
-            console.log(data)
-
             // if key is supplied through cli or file
             if (givenKey) {
 
                 let tempAccount = false;
+
                 data.result.accounts.forEach(function (value) {
 
                     if (givenKey === value.id) {
@@ -570,17 +573,24 @@ cli.main(function (args, options) {
 
                 });
 
-                cli.ok('Which account?');
+                if(data.result.accounts.length === 1) {
+                    self.account = data.result.accounts[0];
+                    cb();
+                } else {
 
-                inquirer.prompt([{
-                    type: 'list',
-                    name: 'account',
-                    message: 'Select an Account',
-                    choices: choices
-                }]).then(function (answers) {
-                    self.account = answers.account;
-                    cb(err);
-                });
+                    cli.ok('Which account?');
+
+                    inquirer.prompt([{
+                        type: 'list',
+                        name: 'account',
+                        message: 'Select an Account',
+                        choices: choices
+                    }]).then(function (answers) {
+                        self.account = answers.account;
+                        cb(err);
+                    });
+
+                }
 
             }
 
