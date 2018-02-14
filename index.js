@@ -15,10 +15,10 @@ cli.parse({
     block: ['b', 'Block ID', 'int'],
     key: ['k', 'Subscribe Key ID', 'int'],
     file: ['f', 'A block file', 'path'],
-    env: ['e', 'An environment [bronze, silver, gold, prod]', 'string'],
     email: ['m', 'Email', 'string'],
     insert: ['n', 'Insert Mode. Create new blocks and skip prompts.', true,
         false],
+    account: ['a', 'Account ID', 'int'],
     password: ['p', 'Password', 'string']
 },
 ['login', 'logout', 'start', 'stop', 'init', 'push', 'pull']);
@@ -82,18 +82,20 @@ cli.main(function (args, options) {
     self.blockLocal = false;       // the local block file
     self.blockRemote = false;             // the remove block json object
     self.key = false;               // the selected key object
+    self.account = false;
     self.eventHandler = false;     // the selected event handler object
 
     self.blockFileRequired = false;
 
     // specify the required environment
-    options.env = options.env || 'prod';
+    options.env = 'prod';
 
     self.env = envs[options.env];   // map the env string to an object
 
     // pubnub-api is a custom api client for portal related operations
     var api = require('./lib/pubnub-api')({
         debug: true,
+        debugLogger: cli.debug,
         endpoint: self.env.host
     });
 
@@ -260,7 +262,7 @@ cli.main(function (args, options) {
             api.request('post',
                 ['api', 'v1', 'blocks', 'key', key.id, 'block'],
                 {
-                    form: block
+                    body: block
                 }, function (err, data) {
 
                     cli.ok('Block Created');
@@ -285,7 +287,7 @@ cli.main(function (args, options) {
 
             api.request('post', ['api', 'v1', 'blocks', 'key',
                 block.key_id, 'event_handler'], {
-                    form: eh
+                    body: eh
                 }, function (err) {
 
                     cli.ok('Event Handler Created');
@@ -315,6 +317,9 @@ cli.main(function (args, options) {
         }
         if (options.file && options.file !== '/') {
             opts.f = options.file;
+        }
+        if (self.account) {
+            opts.a = self.account.id;
         }
 
         if (Object.keys(opts).length) {
@@ -519,6 +524,80 @@ cli.main(function (args, options) {
 
     };
 
+    // sets self.account
+    self.accountGet = function (cb) {
+
+        cli.debug('accountGet');
+
+        // looks first in options
+        var givenKey = options.account || false;
+
+        api.request('get', ['api', 'accounts'], {
+            qs: {
+                user_id: self.session.user.id
+            }
+        }, function (err, data) {
+
+            // if key is supplied through cli or file
+            if (givenKey) {
+
+                let tempAccount = false;
+
+                data.result.accounts.forEach(function (value) {
+
+                    if (givenKey === value.id) {
+                        tempAccount = value;
+                    }
+
+                });
+
+                if (!tempAccount) {
+                    cb('Invalid account ID');
+                } else {
+                    self.account = tempAccount;
+                    cb(err);
+                }
+
+            } else {
+
+                // create an interactive account selection
+                var choices = [];
+
+                // loop through accounts
+                data.result.accounts.forEach(function (value) {
+
+                    choices.push({
+                        name: value.properties.company || value.owner_id,
+                        value: value
+                    });
+
+                });
+
+                if(data.result.accounts.length === 1) {
+                    self.account = data.result.accounts[0];
+                    cb();
+                } else {
+
+                    cli.ok('Which account?');
+
+                    inquirer.prompt([{
+                        type: 'list',
+                        name: 'account',
+                        message: 'Select an Account',
+                        choices: choices
+                    }]).then(function (answers) {
+                        self.account = answers.account;
+                        cb(err);
+                    });
+
+                }
+
+            }
+
+        });
+
+    };
+
     // sets self.key
     self.keyGet = function (cb) {
 
@@ -530,7 +609,7 @@ cli.main(function (args, options) {
 
         api.request('get', ['api', 'apps'], {
             qs: {
-                owner_id: self.session.user.id
+                owner_id: self.account.id
             }
         }, function (err, data) {
 
@@ -734,9 +813,12 @@ cli.main(function (args, options) {
 
         cli.debug('blockPush');
 
+        self.blockLocal.block_id = self.blockLocal._id;
+        self.blockLocal.id = self.blockLocal._id;
+
         api.request('put', ['api', 'v1', 'blocks', 'key',
             self.blockRemote.key_id, 'block', self.blockRemote.id], {
-                form: self.blockLocal
+                body: self.blockLocal
             }, function (err) {
                 cb(err ? err.message : null);
             }
@@ -1067,24 +1149,25 @@ cli.main(function (args, options) {
                 delete data.file;
             }
 
+            data.id = id;
+            data.key_id = self.blockRemote.key_id;
+
             if (id) {
+
+                data.block_id = self.blockRemote.id;
+                data.type = 'js';
 
                 // if id exists, update (put)
                 api.request('put', ['api', 'v1', 'blocks', 'key',
                     self.blockRemote.key_id, 'event_handler', id], {
-                        form: data
+                        body: data
                     }, done);
 
             } else {
 
-                // of id does not exist (update)
-                data.block_id = self.blockRemote.id;
-                data.key_id = self.blockRemote.key_id;
-                data.type = 'js';
-
                 api.request('post', ['api', 'v1', 'blocks', 'key',
                     self.blockRemote.key_id, 'event_handler'], {
-                        form: data
+                        body: data
                     }, done);
 
             }
@@ -1154,26 +1237,26 @@ cli.main(function (args, options) {
         },
         init: {
             functions: ['sessionFileGet', 'sessionGet',
-                'blockFileCreate', 'blockRead', 'keyGet', 'blockGet',
-                'blockWrite', 'eventHandlerWrite'],
+                'blockFileCreate', 'blockRead', 'accountGet', 'keyGet',
+                'blockGet', 'blockWrite', 'eventHandlerWrite'],
             success: 'New block.json written to disk.'
         },
         push: {
             functions: ['sessionFileGet', 'sessionGet', 'blockRead',
-                'keyGet', 'blockGet', 'blockComplete',
+                'accountGet', 'keyGet', 'blockGet', 'blockComplete',
                 'eventHandlerComplete', 'eventHandlerPush',
                 'blockPush'],
             success: 'Block pushed'
         },
         pull: {
             functions: ['sessionFileGet', 'sessionGet', 'requireInit',
-                'blockRead', 'keyGet', 'blockGet', 'blockWrite',
+                'blockRead', 'accountGet', 'keyGet', 'blockGet', 'blockWrite',
                 'eventHandlerWrite'],
             success: 'Local block.json updated with remote data.'
         },
         start: {
             functions: ['sessionFileGet', 'sessionGet', 'blockRead',
-                'keyGet', 'blockStart'],
+            'accountGet', 'keyGet', 'blockStart'],
             success: 'Block started'
         },
         stop: {
