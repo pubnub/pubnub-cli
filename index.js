@@ -450,6 +450,7 @@ cli.main(function (args, options) {
 
                 // token expired, need to login again
                 cli.error('Session has expired, please login.');
+                cli.info('Email ' + self.session.user.email);
 
                 // supply email, prompt password
                 inquirer.prompt([userQuestions.password])
