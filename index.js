@@ -1,3 +1,5 @@
+require('events').EventEmitter.prototype._maxListeners = 100;
+
 /* global pwd */
 var inquirer = require('inquirer'); // interactive mode selection
 var cli = require('cli').enable('status'); // Enable cli.ok, cli.error, etc
@@ -8,7 +10,7 @@ var PUBNUB = require('pubnub'); // obviously
 var slug = require('slug'); // strips characters for friendly file names
 var envs = require('./envs'); // location of block environment configs
 var watch = require('node-watch'); // watch local files, upload, deploy
-var sessionAuthKey = 'pubnub-cli-auth-' + new Date().getTime();
+var debounce = require('debounce');
 
 require('shelljs/global'); // ability to run shell commands
 
@@ -1256,22 +1258,23 @@ cli.main(function (args, options) {
 
     self.watchDir = function(cb) {
 
-        let startStop = function() {
-            console.log('startstop called')
+        var startStop = function() {
+
             self.blockStop(function() {
-                self.blockStart(cb);
+
+                self.blockStart(function() {
+                });
+
             });
+
         };
 
         startStop();
 
+        var dStartStop = debounce(startStop, 5000, true);
+
         watch(workingDir, { recursive: true }, function(evt, name) {
-
-            console.log('updated')
-
-          // debounce(self.eventHandlerPush, 5000, true);
-          startStop();
-
+            dStartStop();
         });
 
     }
