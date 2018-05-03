@@ -122,7 +122,7 @@ cli.main(function (args, options) {
         input.channels = data.channels || input.channels;
         input.file = input.file || data.file; // local attribute wins
         input.output = data.output || input.output;
-        input.path = data.path || input.path;
+        input.path = data.path || input.path; // url path for rest endpoints
 
         return input;
 
@@ -174,9 +174,9 @@ cli.main(function (args, options) {
         }
 
         if(eventHandler.event === 'js-on-rest') {
-            Object.assign(o, q);
+            Object.assign(o, q); // add path
         } else {
-            Object.assign(o, p);
+            Object.assign(o, p); // add output and channel
         }
 
         // if we're missing this property
@@ -869,7 +869,6 @@ cli.main(function (args, options) {
                     publish_key: self.key.publish_key,
                     origin: self.env.origin,
                     secret_key: self.key.secret_key
-                    // authKey: sessionAuthKey
                 });
 
                 // the channel is crazy
@@ -880,48 +879,37 @@ cli.main(function (args, options) {
                 // show a loading spinner
                 cli.spinner('Starting Block...');
 
-                // pubnub.grant({
-                //     channels: [chan],
-                //     ttl: 180,
-                //     read: true,
-                //     authKeys: [sessionAuthKey],
-                //     callback: function() {
+                cli.info('Subscribing to blocks status channel...');
 
-                        cli.info('Subscribing to blocks status channel...');
+                let cbCalled = false;
 
-                        let cbCalled = false;
+                // subscribe to status channel
+                pubnub.subscribe({
+                    channel: chan,
+                    message: function (m) {
 
-                        // subscribe to status channel
-                        pubnub.subscribe({
-                            channel: chan,
-                            message: function (m) {
+                        if (m.state === 'running') {
 
-                                if (m.state === 'running') {
+                            if(!cbCalled) {
 
-                                    if(!cbCalled) {
+                                cli.spinner('Starting Block... OK', true);
+                                cli.ok('Block State: ' + m.state);
 
-                                        cli.spinner('Starting Block... OK', true);
-                                        cli.ok('Block State: ' + m.state);
-
-                                        cbCalled = true;
-                                        cb();
-                                    }
-
-                                }
-
-                            },
-                            error: function (error) {
-
-                                console.log('ERROR cb', error)
-
-                                // Handle error here
-                                cb(JSON.stringify(error));
+                                cbCalled = true;
+                                cb();
                             }
-                        });
 
-                    // }
+                        }
 
-                // });
+                    },
+                    error: function (error) {
+
+                        console.log('ERROR cb', error)
+
+                        // Handle error here
+                        cb(JSON.stringify(error));
+                    }
+                });
 
             }
         );
