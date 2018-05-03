@@ -7,6 +7,7 @@ var fs = require('fs-extra'); // json support for fs
 var PUBNUB = require('pubnub'); // obviously
 var slug = require('slug'); // strips characters for friendly file names
 var envs = require('./envs'); // location of block environment configs
+var watch = require('node-watch'); // watch local files, upload, deploy
 
 require('shelljs/global'); // ability to run shell commands
 
@@ -21,10 +22,10 @@ cli.parse({
     account: ['a', 'Account ID', 'int'],
     password: ['p', 'Password', 'string']
 },
-['login', 'logout', 'start', 'stop', 'init', 'push', 'pull']);
+['login', 'logout', 'start', 'stop', 'init', 'push', 'pull', 'watch']);
 
 // sets all file operations relative to the current directory
-var workingDir = String(pwd() + '/');
+var workingDir = String(pwd());
 
 // cli function to parse arguments and options
 cli.main(function (args, options) {
@@ -507,6 +508,7 @@ cli.main(function (args, options) {
                 } else {
                     cb(null);
                 }
+
             } else {
 
                 if (data.name) {
@@ -640,6 +642,8 @@ cli.main(function (args, options) {
                 var paramKey = false;
 
                 data.result.forEach(function (app) {
+
+                    console.log(app.keys)
 
                     app.keys.forEach(function (value) {
 
@@ -1163,12 +1167,6 @@ cli.main(function (args, options) {
 
             var id = data._id;
 
-            // these properties don't exist on server, so don't send them
-            delete data._id;
-            if (data.file) {
-                delete data.file;
-            }
-
             data.id = id;
             data.key_id = self.blockRemote.key_id;
 
@@ -1240,6 +1238,28 @@ cli.main(function (args, options) {
 
     };
 
+    self.watchDir = function(cb) {
+
+        let startStop = function() {
+            console.log('startstop called')
+            self.blockStop(function() {
+                self.blockStart(cb);
+            });
+        };
+
+        startStop();
+
+        watch(workingDir, { recursive: true }, function(evt, name) {
+
+            console.log('updated')
+
+          // debounce(self.eventHandlerPush, 5000, true);
+          startStop();
+
+        });
+
+    }
+
     // this is an array of routes
     // each route matches a possible command supplies through the cli
     // ```functions``` is an array of methods that are executed in order
@@ -1283,8 +1303,16 @@ cli.main(function (args, options) {
             functions: ['sessionFileGet', 'sessionGet', 'blockRead',
                 'blockStop'],
             success: 'Block stopped'
+        },
+        watch: {
+            functions: ['sessionFileGet', 'sessionGet', 'blockRead',
+                'accountGet', 'keyGet', 'blockGet', 'blockComplete',
+                'eventHandlerComplete', 'watchDir'],
+            success: 'Whoop'
         }
     };
+
+    console.log(cli.command)
 
     // this is the magic function that creates a function queue
     // using the supplied CLI command
@@ -1318,8 +1346,6 @@ cli.main(function (args, options) {
             // display the 'use this command next time' message
             explain();
 
-            // forceful exit
-            process.exit(0);
         }
     });
 
