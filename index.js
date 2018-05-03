@@ -8,6 +8,7 @@ var PUBNUB = require('pubnub'); // obviously
 var slug = require('slug'); // strips characters for friendly file names
 var envs = require('./envs'); // location of block environment configs
 var watch = require('node-watch'); // watch local files, upload, deploy
+var sessionAuthKey = 'pubnub-cli-auth-' + new Date().getTime();
 
 require('shelljs/global'); // ability to run shell commands
 
@@ -643,8 +644,6 @@ cli.main(function (args, options) {
 
                 data.result.forEach(function (app) {
 
-                    console.log(app.keys)
-
                     app.keys.forEach(function (value) {
 
                         if (givenKey === value.id) {
@@ -866,7 +865,9 @@ cli.main(function (args, options) {
                 var pubnub = PUBNUB.init({
                     subscribe_key: self.key.subscribe_key,
                     publish_key: self.key.publish_key,
-                    origin: self.env.origin
+                    origin: self.env.origin,
+                    secret_key: self.key.secret_key
+                    // authKey: sessionAuthKey
                 });
 
                 // the channel is crazy
@@ -874,36 +875,51 @@ cli.main(function (args, options) {
                     + self.key.properties.realtime_analytics_channel
                     + '.' + self.blockLocal._id;
 
-                cli.info('Subscribing to blocks status channel...');
-
                 // show a loading spinner
                 cli.spinner('Starting Block...');
 
-                // subscribe to status channel
-                pubnub.subscribe({
-                    channel: chan,
-                    message: function (m) {
+                // pubnub.grant({
+                //     channels: [chan],
+                //     ttl: 180,
+                //     read: true,
+                //     authKeys: [sessionAuthKey],
+                //     callback: function() {
 
-                        if (m.state === 'running') {
-                            cli.spinner('Starting Block... OK', true);
-                            cli.ok('Block State: ' + m.state);
-                            cb();
-                        } else if (m.state === 'stopped') {
-                            cli.ok('Block State: ' + m.state);
-                            cb();
-                        } else {
-                            if (m.state !== 'pending') {
-                                cli.info(
-                                    'Block State: ' + m.state + '...');
+                        cli.info('Subscribing to blocks status channel...');
+
+                        let cbCalled = false;
+
+                        // subscribe to status channel
+                        pubnub.subscribe({
+                            channel: chan,
+                            message: function (m) {
+
+                                if (m.state === 'running') {
+
+                                    if(!cbCalled) {
+
+                                        cli.spinner('Starting Block... OK', true);
+                                        cli.ok('Block State: ' + m.state);
+
+                                        cbCalled = true;
+                                        cb();
+                                    }
+
+                                }
+
+                            },
+                            error: function (error) {
+
+                                console.log('ERROR cb', error)
+
+                                // Handle error here
+                                cb(JSON.stringify(error));
                             }
-                        }
+                        });
 
-                    },
-                    error: function (error) {
-                        // Handle error here
-                        cb(JSON.stringify(error));
-                    }
-                });
+                    // }
+
+                // });
 
             }
         );
@@ -1311,8 +1327,6 @@ cli.main(function (args, options) {
             success: 'Whoop'
         }
     };
-
-    console.log(cli.command)
 
     // this is the magic function that creates a function queue
     // using the supplied CLI command
