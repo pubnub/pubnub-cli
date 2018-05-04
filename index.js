@@ -1093,6 +1093,63 @@ cli.main(function (args, options) {
 
     };
 
+    // write the event handler test stub to a js file within a directory
+    self.eventHandlerWriteTest = function (cb) {
+
+        cli.debug('eventHandlerWriteTest');
+
+        self.blockLocal.event_handlers =
+            self.blockLocal.event_handlers || [];
+
+        // for each server event handler
+        async.eachSeries(self.blockRemote.event_handlers,
+            function (eh, callback) {
+
+                cli.info('Working on unit test for ' + eh.name);
+
+                eh.file = eh.event + '/test/' + slug(eh.name) + '.test.js';
+                var fullPath = workingDir + options.file + eh.file;
+
+                function getFileContents(path) {
+                    return new Promise((resolve, reject) => {
+                        fs.readFile(path, {encoding: 'utf-8'}, function(err, data) {
+                            resolve(data);
+                        });
+                    });
+                }
+
+                function writeToFile(contents) {
+                    cli.info('Writing unit test to ' + fullPath);
+                    fs.outputFile(fullPath, contents, function () {
+                        callback();
+                    });
+                }
+
+                if (!fs.existsSync(fullPath)) {
+                    let stubPath;
+
+                    if (eh.event === 'js-on-rest') {
+                        stubPath = './lib/test-stubs/on-request-test-stub.js';
+                    } else {
+                        stubPath = './lib/test-stubs/other-eh-test-stub.js';
+                    }
+
+                    getFileContents(stubPath).then((contents) => {
+                        writeToFile(fullPath, contents);
+                    });
+                }
+
+            }, function () {
+
+                cli.debug('Writing event handlers to block.json to '
+                    + blockFile);
+                fs.outputJson(blockFile, self.blockLocal, { spaces: 4 }, cb);
+
+            }
+        );
+
+    };
+
     // ensures that all properties exist within block.json
     self.blockComplete = function (cb) {
 
@@ -1238,7 +1295,7 @@ cli.main(function (args, options) {
         init: {
             functions: ['sessionFileGet', 'sessionGet',
                 'blockFileCreate', 'blockRead', 'accountGet', 'keyGet',
-                'blockGet', 'blockWrite', 'eventHandlerWrite'],
+                'blockGet', 'blockWrite', 'eventHandlerWrite', 'eventHandlerWriteTest'],
             success: 'New block.json written to disk.'
         },
         push: {
