@@ -1102,17 +1102,21 @@ cli.main(function (args, options) {
             self.blockLocal.event_handlers || [];
 
         // for each server event handler
-        async.eachSeries(self.blockRemote.event_handlers,
-            function (eh, callback) {
+        async.forEachOf(self.blockRemote.event_handlers,
+            function (eh, index, callback) {
 
                 cli.info('Working on unit test for ' + eh.name);
 
                 eh.file = eh.event + '/test/' + slug(eh.name) + '.test.js';
                 var fullPath = workingDir + options.file + eh.file;
+                self.blockLocal.event_handlers[index].test = eh.file;
 
                 function getFileContents(path) {
                     return new Promise((resolve, reject) => {
-                        fs.readFile(path, {encoding: 'utf-8'}, function(err, data) {
+                        fs.readFile(path, 'utf8', function(err, data) {
+                            if (err) reject(err);
+                            // add EH path to the unit test file
+                            data = data.replace(/__eventhandlerpath__/g, `${eh.event}/${slug(eh.name)}.js`);
                             resolve(data);
                         });
                     });
@@ -1126,17 +1130,15 @@ cli.main(function (args, options) {
                 }
 
                 if (!fs.existsSync(fullPath)) {
-                    let stubPath;
+                    let stubPath = require('path').dirname(require.main.filename);
 
                     if (eh.event === 'js-on-rest') {
-                        stubPath = './lib/test-stubs/on-request-test-stub.js';
+                        stubPath += '/lib/test-stubs/on-request-test-stub.js';
                     } else {
-                        stubPath = './lib/test-stubs/other-eh-test-stub.js';
+                        stubPath += '/lib/test-stubs/other-eh-test-stub.js';
                     }
 
-                    getFileContents(stubPath).then((contents) => {
-                        writeToFile(fullPath, contents);
-                    });
+                    getFileContents(stubPath).then(writeToFile);
                 }
 
             }, function () {
@@ -1149,6 +1151,28 @@ cli.main(function (args, options) {
         );
 
     };
+
+    self.unitTestEventHandler = function (cb) {
+        async.mapSeries(self.blockLocal.event_handlers,
+            function (eh, holla) {
+                if (eh.test && fs.existsSync(eh.test)) {
+                    const Mocha = require('mocha');
+                    const mocha = new Mocha();
+                    mocha.addFile(eh.test);
+                    // Run the tests.
+                    mocha.run(function(failures){
+                      process.on('exit', function () {
+                        process.exit(failures);
+                      });
+                    });
+                } else {
+                    holla();
+                }
+            }, function (err, results) {
+                cb();
+            }
+        );
+    }
 
     // ensures that all properties exist within block.json
     self.blockComplete = function (cb) {
@@ -1301,14 +1325,14 @@ cli.main(function (args, options) {
         push: {
             functions: ['sessionFileGet', 'sessionGet', 'blockRead',
                 'accountGet', 'keyGet', 'blockGet', 'blockComplete',
-                'eventHandlerComplete', 'eventHandlerPush',
+                'eventHandlerComplete', 'unitTestEventHandler', 'eventHandlerPush',
                 'blockPush'],
             success: 'Block pushed'
         },
         pull: {
             functions: ['sessionFileGet', 'sessionGet', 'requireInit',
                 'blockRead', 'accountGet', 'keyGet', 'blockGet', 'blockWrite',
-                'eventHandlerWrite'],
+                'eventHandlerWrite', 'eventHandlerWriteTest'],
             success: 'Local block.json updated with remote data.'
         },
         start: {
