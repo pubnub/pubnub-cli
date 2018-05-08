@@ -118,6 +118,7 @@ cli.main(function (args, options) {
         input.channels = data.channels || input.channels;
         input.file = input.file || data.file; // local attribute wins
         input.output = data.output || input.output;
+        input.path = data.path || input.path;
 
         return input;
 
@@ -140,8 +141,11 @@ cli.main(function (args, options) {
                 type: 'list',
                 default: eventHandler.event,
                 choices: ['js-after-publish', 'js-before-publish',
-                    'js-after-presence']
-            },
+                    'js-after-presence', 'js-on-rest']
+            }
+        };
+
+        var p = {
             channels: {
                 name: 'channels',
                 message: 'PubNub Channels:',
@@ -155,6 +159,21 @@ cli.main(function (args, options) {
                 default: eventHandler.output
             }
         };
+
+        var q = {
+            path: {
+                name: 'path',
+                message: 'Path',
+                type: 'input',
+                default: eventHandler.path
+            }
+        }
+
+        if(eventHandler.event === 'js-on-rest') {
+            Object.assign(o, q);
+        } else {
+            Object.assign(o, p);
+        }
 
         // if we're missing this property
         // add interactive question to an array
@@ -450,6 +469,7 @@ cli.main(function (args, options) {
 
                 // token expired, need to login again
                 cli.error('Session has expired, please login.');
+                cli.info('Email ' + self.session.user.email);
 
                 // supply email, prompt password
                 inquirer.prompt([userQuestions.password])
