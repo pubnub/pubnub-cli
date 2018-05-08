@@ -31,6 +31,7 @@
     "fs-extra": "^0.30.0",
     "inquirer": "^1.0.3",
     "jsonfile": "^2.3.1",
+    "mocha": "^5.1.1",
     "pubnub": "^3.14.5",
     "pubnub-functions-mock": "0.0.16",
     "request": "2.72.0",
