@@ -1123,6 +1123,89 @@ cli.main(function (args, options) {
 
     };
 
+    // write the event handler test stub to a js file within a directory
+    self.eventHandlerWriteTest = function (cb) {
+
+        cli.debug('eventHandlerWriteTest');
+
+        self.blockLocal.event_handlers =
+            self.blockLocal.event_handlers || [];
+
+        // for each server event handler
+        async.forEachOf(self.blockRemote.event_handlers,
+            function (eh, index, callback) {
+
+                cli.info('Working on unit test for ' + eh.name);
+
+                eh.file = eh.event + '/test/' + slug(eh.name) + '.test.js';
+                var fullPath = workingDir + options.file + eh.file;
+                self.blockLocal.event_handlers[index].test = eh.file;
+
+                function getFileContents(path) {
+                    return new Promise((resolve, reject) => {
+                        fs.readFile(path, 'utf8', function(err, data) {
+                            if (err) reject(err);
+                            // add EH path to the unit test file
+                            data = data.replace(/__eventhandlerpath__/g, `${eh.event}/${slug(eh.name)}.js`);
+                            resolve(data);
+                        });
+                    });
+                }
+
+                function writeToFile(contents) {
+                    cli.info('Writing unit test to ' + fullPath);
+                    fs.outputFile(fullPath, contents, function () {
+                        callback();
+                    });
+                }
+
+                if (!fs.existsSync(fullPath)) {
+                    let stubPath = require('path').dirname(require.main.filename);
+
+                    if (eh.event === 'js-on-rest') {
+                        stubPath += '/lib/test-stubs/on-request-test-stub.js';
+                    } else {
+                        stubPath += '/lib/test-stubs/other-eh-test-stub.js';
+                    }
+
+                    getFileContents(stubPath).then(writeToFile);
+                }
+
+            }, function () {
+
+                cli.debug('Writing event handlers to block.json to '
+                    + blockFile);
+                fs.outputJson(blockFile, self.blockLocal, { spaces: 4 }, cb);
+
+            }
+        );
+
+    };
+
+    self.unitTestEventHandler = function (cb) {
+        async.mapSeries(self.blockLocal.event_handlers,
+            function (eh, holla) {
+                if (eh.test && fs.existsSync(eh.test)) {
+                    const Mocha = require('mocha');
+                    const mocha = new Mocha();
+                    mocha.addFile(eh.test);
+                    // Run the tests.
+                    mocha.run(function(failures){
+                        if (typeof failures === 'number' && failures > 0) {
+                            process.exit(failures);
+                        } else {
+                            holla();
+                        }
+                    });
+                } else {
+                    holla();
+                }
+            }, function (err, results) {
+                cb();
+            }
+        );
+    }
+
     // ensures that all properties exist within block.json
     self.blockComplete = function (cb) {
 
@@ -1285,20 +1368,20 @@ cli.main(function (args, options) {
         init: {
             functions: ['sessionFileGet', 'sessionGet',
                 'blockFileCreate', 'blockRead', 'accountGet', 'keyGet',
-                'blockGet', 'blockWrite', 'eventHandlerWrite'],
+                'blockGet', 'blockWrite', 'eventHandlerWrite', 'eventHandlerWriteTest'],
             success: 'New block.json written to disk.'
         },
         push: {
             functions: ['sessionFileGet', 'sessionGet', 'blockRead',
                 'accountGet', 'keyGet', 'blockGet', 'blockComplete',
-                'eventHandlerComplete', 'eventHandlerPush',
+                'eventHandlerComplete', 'unitTestEventHandler', 'eventHandlerPush',
                 'blockPush'],
             success: 'Block pushed'
         },
         pull: {
             functions: ['sessionFileGet', 'sessionGet', 'requireInit',
                 'blockRead', 'accountGet', 'keyGet', 'blockGet', 'blockWrite',
-                'eventHandlerWrite'],
+                'eventHandlerWrite', 'eventHandlerWriteTest'],
             success: 'Local block.json updated with remote data.'
         },
         start: {
