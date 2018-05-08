@@ -1161,9 +1161,11 @@ cli.main(function (args, options) {
                     mocha.addFile(eh.test);
                     // Run the tests.
                     mocha.run(function(failures){
-                      process.on('exit', function () {
-                        process.exit(failures);
-                      });
+                        if (typeof failures === 'number' && failures > 0) {
+                            process.exit(failures);
+                        } else {
+                            holla();
+                        }
                     });
                 } else {
                     holla();
