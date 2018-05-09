@@ -1376,7 +1376,11 @@ cli.main(function (args, options) {
         var dStartStop = debounce(startStop, 5000, true);
 
         watch(workingDir, { recursive: true }, function(evt, name) {
-            dStartStop();
+
+            self.eventHandlerPush(function() {
+                dStartStop();
+            });
+
         });
 
     }
