@@ -1444,7 +1444,7 @@ cli.main(function (args, options) {
         test: {
             functions: ['sessionFileGet', 'sessionGet', 'blockRead',
                 'accountGet', 'keyGet', 'blockGet', 'blockComplete',
-                'eventHandlerComplete', 'unitTestEventHandler']
+                'eventHandlerComplete', 'unitTestEventHandler'],
             success: 'Tests Pass!'
         }
     };
