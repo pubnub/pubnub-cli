@@ -1,3 +1,5 @@
+require('events').EventEmitter.prototype._maxListeners = 100;
+
 /* global pwd */
 var inquirer = require('inquirer'); // interactive mode selection
 var cli = require('cli').enable('status'); // Enable cli.ok, cli.error, etc
@@ -7,6 +9,8 @@ var fs = require('fs-extra'); // json support for fs
 var PUBNUB = require('pubnub'); // obviously
 var slug = require('slug'); // strips characters for friendly file names
 var envs = require('./envs'); // location of block environment configs
+var watch = require('node-watch'); // watch local files, upload, deploy
+var debounce = require('debounce');
 
 require('shelljs/global'); // ability to run shell commands
 
@@ -21,10 +25,10 @@ cli.parse({
     account: ['a', 'Account ID', 'int'],
     password: ['p', 'Password', 'string']
 },
-['login', 'logout', 'start', 'stop', 'init', 'push', 'pull']);
+['login', 'logout', 'start', 'stop', 'init', 'push', 'pull', 'watch', 'log']);
 
 // sets all file operations relative to the current directory
-var workingDir = String(pwd() + '/');
+var workingDir = String(pwd());
 
 // cli function to parse arguments and options
 cli.main(function (args, options) {
@@ -118,7 +122,7 @@ cli.main(function (args, options) {
         input.channels = data.channels || input.channels;
         input.file = input.file || data.file; // local attribute wins
         input.output = data.output || input.output;
-        input.path = data.path || input.path;
+        input.path = data.path || input.path; // url path for rest endpoints
 
         return input;
 
@@ -170,9 +174,9 @@ cli.main(function (args, options) {
         }
 
         if(eventHandler.event === 'js-on-rest') {
-            Object.assign(o, q);
+            Object.assign(o, q); // add path
         } else {
-            Object.assign(o, p);
+            Object.assign(o, p); // add output and channel
         }
 
         // if we're missing this property
@@ -507,6 +511,7 @@ cli.main(function (args, options) {
                 } else {
                     cb(null);
                 }
+
             } else {
 
                 if (data.name) {
@@ -862,7 +867,8 @@ cli.main(function (args, options) {
                 var pubnub = PUBNUB.init({
                     subscribe_key: self.key.subscribe_key,
                     publish_key: self.key.publish_key,
-                    origin: self.env.origin
+                    origin: self.env.origin,
+                    secret_key: self.key.secret_key
                 });
 
                 // the channel is crazy
@@ -870,10 +876,12 @@ cli.main(function (args, options) {
                     + self.key.properties.realtime_analytics_channel
                     + '.' + self.blockLocal._id;
 
-                cli.info('Subscribing to blocks status channel...');
-
                 // show a loading spinner
                 cli.spinner('Starting Block...');
+
+                cli.info('Subscribing to blocks status channel...');
+
+                let cbCalled = false;
 
                 // subscribe to status channel
                 pubnub.subscribe({
@@ -881,21 +889,23 @@ cli.main(function (args, options) {
                     message: function (m) {
 
                         if (m.state === 'running') {
-                            cli.spinner('Starting Block... OK', true);
-                            cli.ok('Block State: ' + m.state);
-                            cb();
-                        } else if (m.state === 'stopped') {
-                            cli.ok('Block State: ' + m.state);
-                            cb();
-                        } else {
-                            if (m.state !== 'pending') {
-                                cli.info(
-                                    'Block State: ' + m.state + '...');
+
+                            if(!cbCalled) {
+
+                                cli.spinner('Starting Block... OK', true);
+                                cli.ok('Block State: ' + m.state);
+
+                                cbCalled = true;
+                                cb();
                             }
+
                         }
 
                     },
                     error: function (error) {
+
+                        console.log('ERROR cb', error)
+
                         // Handle error here
                         cb(JSON.stringify(error));
                     }
@@ -960,17 +970,24 @@ cli.main(function (args, options) {
 
             });
 
-            cli.ok('Which event handler?');
-
-            inquirer.prompt([{
-                type: 'list',
-                name: 'eventHandler',
-                message: 'Select an event handler',
-                choices: choices
-            }]).then(function (answers) {
-                self.eventHandler = answers.eventHandler;
+            if(choices.length === 1) {
+                self.eventHandler = choices[0].value;
                 cb(null);
-            });
+            } else {
+
+                cli.ok('Which event handler?');
+
+                inquirer.prompt([{
+                    type: 'list',
+                    name: 'eventHandler',
+                    message: 'Select an event handler',
+                    choices: choices
+                }]).then(function (answers) {
+                    self.eventHandler = answers.eventHandler;
+                    cb(null);
+                });
+
+            }
 
         }
 
@@ -1113,6 +1130,89 @@ cli.main(function (args, options) {
 
     };
 
+    // write the event handler test stub to a js file within a directory
+    self.eventHandlerWriteTest = function (cb) {
+
+        cli.debug('eventHandlerWriteTest');
+
+        self.blockLocal.event_handlers =
+            self.blockLocal.event_handlers || [];
+
+        // for each server event handler
+        async.forEachOf(self.blockRemote.event_handlers,
+            function (eh, index, callback) {
+
+                cli.info('Working on unit test for ' + eh.name);
+
+                eh.file = eh.event + '/test/' + slug(eh.name) + '.test.js';
+                var fullPath = workingDir + options.file + eh.file;
+                self.blockLocal.event_handlers[index].test = eh.file;
+
+                function getFileContents(path) {
+                    return new Promise((resolve, reject) => {
+                        fs.readFile(path, 'utf8', function(err, data) {
+                            if (err) reject(err);
+                            // add EH path to the unit test file
+                            data = data.replace(/__eventhandlerpath__/g, `${eh.event}/${slug(eh.name)}.js`);
+                            resolve(data);
+                        });
+                    });
+                }
+
+                function writeToFile(contents) {
+                    cli.info('Writing unit test to ' + fullPath);
+                    fs.outputFile(fullPath, contents, function () {
+                        callback();
+                    });
+                }
+
+                if (!fs.existsSync(fullPath)) {
+                    let stubPath = require('path').dirname(require.main.filename);
+
+                    if (eh.event === 'js-on-rest') {
+                        stubPath += '/lib/test-stubs/on-request-test-stub.js';
+                    } else {
+                        stubPath += '/lib/test-stubs/other-eh-test-stub.js';
+                    }
+
+                    getFileContents(stubPath).then(writeToFile);
+                }
+
+            }, function () {
+
+                cli.debug('Writing event handlers to block.json to '
+                    + blockFile);
+                fs.outputJson(blockFile, self.blockLocal, { spaces: 4 }, cb);
+
+            }
+        );
+
+    };
+
+    self.unitTestEventHandler = function (cb) {
+        async.mapSeries(self.blockLocal.event_handlers,
+            function (eh, holla) {
+                if (eh.test && fs.existsSync(eh.test)) {
+                    const Mocha = require('mocha');
+                    const mocha = new Mocha();
+                    mocha.addFile(eh.test);
+                    // Run the tests.
+                    mocha.run(function(failures){
+                        if (typeof failures === 'number' && failures > 0) {
+                            process.exit(failures);
+                        } else {
+                            holla();
+                        }
+                    });
+                } else {
+                    holla();
+                }
+            }, function (err, results) {
+                cb();
+            }
+        );
+    }
+
     // ensures that all properties exist within block.json
     self.blockComplete = function (cb) {
 
@@ -1162,12 +1262,6 @@ cli.main(function (args, options) {
         var update = function (data, done) {
 
             var id = data._id;
-
-            // these properties don't exist on server, so don't send them
-            delete data._id;
-            if (data.file) {
-                delete data.file;
-            }
 
             data.id = id;
             data.key_id = self.blockRemote.key_id;
@@ -1240,6 +1334,65 @@ cli.main(function (args, options) {
 
     };
 
+    self.eventHandlerLog = function(cb) {
+
+        cli.debug('eventHandler Log');
+        cli.ok('Working on Event Handler ' + self.eventHandler.name);
+
+        // after it starts
+        // we need to subscribe to the channel to see output
+        var pubnub = PUBNUB.init({
+            subscribe_key: self.key.subscribe_key,
+            publish_key: self.key.publish_key,
+            origin: self.env.origin,
+            secret_key: self.key.secret_key
+        });
+
+        // the channel is crazy
+        var chan = self.eventHandler.output;
+
+        // show a loading spinner
+        cli.spinner('Logging Output...');
+
+        // subscribe to status channel
+        pubnub.subscribe({
+            channel: chan,
+            message: function (m) {
+                console.log(m);
+            },
+            error: function (error) {
+
+                // Handle error here
+                cb(JSON.stringify(error));
+
+            }
+        });
+
+    };
+
+    self.watchDir = function(cb) {
+
+        var startStop = function() {
+
+            self.blockStop(function() {
+
+                self.blockStart(function() {
+                });
+
+            });
+
+        };
+
+        startStop();
+
+        var dStartStop = debounce(startStop, 5000, true);
+
+        watch(workingDir, { recursive: true }, function(evt, name) {
+            dStartStop();
+        });
+
+    }
+
     // this is an array of routes
     // each route matches a possible command supplies through the cli
     // ```functions``` is an array of methods that are executed in order
@@ -1258,20 +1411,20 @@ cli.main(function (args, options) {
         init: {
             functions: ['sessionFileGet', 'sessionGet',
                 'blockFileCreate', 'blockRead', 'accountGet', 'keyGet',
-                'blockGet', 'blockWrite', 'eventHandlerWrite'],
+                'blockGet', 'blockWrite', 'eventHandlerWrite', 'eventHandlerWriteTest'],
             success: 'New block.json written to disk.'
         },
         push: {
             functions: ['sessionFileGet', 'sessionGet', 'blockRead',
                 'accountGet', 'keyGet', 'blockGet', 'blockComplete',
-                'eventHandlerComplete', 'eventHandlerPush',
+                'eventHandlerComplete', 'unitTestEventHandler', 'eventHandlerPush',
                 'blockPush'],
             success: 'Block pushed'
         },
         pull: {
             functions: ['sessionFileGet', 'sessionGet', 'requireInit',
                 'blockRead', 'accountGet', 'keyGet', 'blockGet', 'blockWrite',
-                'eventHandlerWrite'],
+                'eventHandlerWrite', 'eventHandlerWriteTest'],
             success: 'Local block.json updated with remote data.'
         },
         start: {
@@ -1283,7 +1436,19 @@ cli.main(function (args, options) {
             functions: ['sessionFileGet', 'sessionGet', 'blockRead',
                 'blockStop'],
             success: 'Block stopped'
-        }
+        },
+        watch: {
+            functions: ['sessionFileGet', 'sessionGet', 'blockRead',
+                'accountGet', 'keyGet', 'blockGet', 'blockComplete',
+                'eventHandlerComplete', 'watchDir'],
+            success: 'Whoop'
+        },
+        log: {
+            functions: ['sessionFileGet', 'sessionGet', 'blockRead',
+            'accountGet', 'keyGet', 'blockGet', 'eventHandlerGet',
+            'eventHandlerLog'],
+            success: 'Block Logging'
+        },
     };
 
     // this is the magic function that creates a function queue
@@ -1318,8 +1483,6 @@ cli.main(function (args, options) {
             // display the 'use this command next time' message
             explain();
 
-            // forceful exit
-            process.exit(0);
         }
     });
 
