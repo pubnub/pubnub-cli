@@ -25,7 +25,7 @@ cli.parse({
     account: ['a', 'Account ID', 'int'],
     password: ['p', 'Password', 'string']
 },
-['login', 'logout', 'start', 'stop', 'init', 'push', 'pull', 'watch']);
+['login', 'logout', 'start', 'stop', 'init', 'push', 'pull', 'watch', 'log']);
 
 // sets all file operations relative to the current directory
 var workingDir = String(pwd());
@@ -970,17 +970,24 @@ cli.main(function (args, options) {
 
             });
 
-            cli.ok('Which event handler?');
-
-            inquirer.prompt([{
-                type: 'list',
-                name: 'eventHandler',
-                message: 'Select an event handler',
-                choices: choices
-            }]).then(function (answers) {
-                self.eventHandler = answers.eventHandler;
+            if(choices.length === 1) {
+                self.eventHandler = choices[0].value;
                 cb(null);
-            });
+            } else {
+
+                cli.ok('Which event handler?');
+
+                inquirer.prompt([{
+                    type: 'list',
+                    name: 'eventHandler',
+                    message: 'Select an event handler',
+                    choices: choices
+                }]).then(function (answers) {
+                    self.eventHandler = answers.eventHandler;
+                    cb(null);
+                });
+
+            }
 
         }
 
@@ -1244,6 +1251,42 @@ cli.main(function (args, options) {
 
     };
 
+    self.eventHandlerLog = function(cb) {
+
+        cli.debug('eventHandler Log');
+        cli.ok('Working on Event Handler ' + self.eventHandler.name);
+
+        // after it starts
+        // we need to subscribe to the channel to see output
+        var pubnub = PUBNUB.init({
+            subscribe_key: self.key.subscribe_key,
+            publish_key: self.key.publish_key,
+            origin: self.env.origin,
+            secret_key: self.key.secret_key
+        });
+
+        // the channel is crazy
+        var chan = self.eventHandler.output;
+
+        // show a loading spinner
+        cli.spinner('Logging Output...');
+
+        // subscribe to status channel
+        pubnub.subscribe({
+            channel: chan,
+            message: function (m) {
+                console.log(m);
+            },
+            error: function (error) {
+
+                // Handle error here
+                cb(JSON.stringify(error));
+
+            }
+        });
+
+    };
+
     self.watchDir = function(cb) {
 
         var startStop = function() {
@@ -1316,7 +1359,13 @@ cli.main(function (args, options) {
                 'accountGet', 'keyGet', 'blockGet', 'blockComplete',
                 'eventHandlerComplete', 'watchDir'],
             success: 'Whoop'
-        }
+        },
+        log: {
+            functions: ['sessionFileGet', 'sessionGet', 'blockRead',
+            'accountGet', 'keyGet', 'blockGet', 'eventHandlerGet',
+            'eventHandlerLog'],
+            success: 'Block Logging'
+        },
     };
 
     // this is the magic function that creates a function queue
