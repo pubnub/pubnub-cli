@@ -1,1 +1,0 @@
-/Users/adamb/projects/pubnub-cli/test//js-on-rest/test/Amazon-Polly-Function.test.js
