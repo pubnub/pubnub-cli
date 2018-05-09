@@ -11,7 +11,6 @@
 - Push
 - Start
 - Stop
-- TODO
 
 <!-- /MarkdownTOC -->
 
@@ -38,15 +37,29 @@ Usage:
   pubnub-cli [OPTIONS] <command> [ARGS]
 
 Options:
-  -b, --block NUMBER     Specify a Block ID
-  -k, --key NUMBER       Specify a Subscribe Key ID
-  -f, --file PATH        Specify a block file
+  -b, --block NUMBER     Block ID
+  -k, --key NUMBER       Subscribe Key ID
+  -f, --file PATH        A block file
+  -m, --email STRING     Email
+  -n, --insert INSERT    Insert Mode. Create new blocks and skip prompts.
+  -a, --account NUMBER   Account ID
+  -p, --password STRING  Password
       --debug            Show debug information
   -h, --help             Display help and usage details
 
 Commands:
-  init, login, logout, pull, push, start, stop
+  init, log, login, logout, pull, push, start, stop, watch
 ```
+
+- **Init** - Download the remote PubNub function and event handlers locally
+- **Log** - Log the event handler output to console
+- **Login** - Authorize with PubNub and write session to disk
+- **Logout** - Remove local session from disk
+- **Pull** - Download remote event handlers and overwrite file
+- **Push** - Upload remote event handlers and overwrite
+- **Start** - Start the remote PubNub Function
+- **Stop** - Stop the remote PubNub Funciton
+- **Watch** - Watch the local directory and push event handlers when changes are detected
 
 <a name="login"></a>
 ## Login
@@ -63,11 +76,9 @@ Output:
 
 ```zsh
 pubnub-cli login
-INFO: Reading session from /Users/ian/.pubnub-cli
 ? PubNub Email: ian@pubnub.com
 ? PubNub Password: *************
 Logging In... Done!
-INFO: Writing session to /Users/ian/.pubnub-cli
 OK: ---------------------------------------
 OK: Logged In!
 OK: Deluxe!
@@ -113,15 +124,10 @@ Output:
 ```zsh
 INFO: Reading session from /Users/ian/.pubnub-cli
 OK: Working as ian@meetjennings.com
-INFO: Checking for block.json in /Users/ian/Development/new-project/block.json
-INFO: Writing block.json to /Users/ian/Development/new-project/block.json
-INFO: Reading block.json from /Users/ian/Development/new-project/block.json
 OK: Which app are you working on?
 ? Select a key eon-demos
 OK: Which block are you working on?
 ? Select a block Email Sendgrid Block
-INFO: Writing block.json to /Users/ian/Development/new-project/block.json
-INFO: Writing event handler to /Users/ian/Development/new-project/js-after-publish/send-email.js
 OK: ---------------------------------------
 OK: New block.json written to disk.
 OK: Deluxe!
@@ -146,10 +152,7 @@ Output
 ```zsh
 INFO: Reading session from /Users/ian/.pubnub-cli
 OK: Working as ian@meetjennings.com
-INFO: Reading block.json from /Users/ian/Development/new-project/block.json
 OK: Working on block Email Sendgrid Block
-INFO: Writing block.json to /Users/ian/Development/new-project/block.json
-INFO: Writing event handler to /Users/ian/Development/new-project/js-after-publish/send-email.js
 OK: ---------------------------------------
 OK: Local block.json updated with remote data.
 OK: Deluxe!
@@ -199,11 +202,8 @@ pubnub-cli push
 Output
 
 ```zsh
-INFO: Reading session from /Users/ian/.pubnub-cli
 OK: Working as ian@meetjennings.com
-INFO: Reading block.json from /Users/ian/Development/new-project/block.json
 OK: Working on block Email Sendgrid Block
-INFO: Uploading event handler from /Users/ian/Development/new-project/js-after-publish/send-email.js
 OK: ---------------------------------------
 OK: Block pushed
 OK: Deluxe!
@@ -260,12 +260,9 @@ pubnub-cli start
 Output
 
 ```zsh
-INFO: Reading session from /Users/ian/.pubnub-cli
 OK: Working as ian@meetjennings.com
-INFO: Reading block.json from /Users/ian/Development/new-project/block.json
 OK: Working on block Email Sendgrid Block
 OK: Sending start command
-INFO: Subscribing to blocks status channel...
 Starting Block...
 OK: ---------------------------------------
 OK: Block started
@@ -288,17 +285,9 @@ Output
 ```zsh
 NFO: Reading session from /Users/ian/.pubnub-cli
 OK: Working as ian@meetjennings.com
-INFO: Reading block.json from /Users/ian/Development/new-project/block.json
 OK: Working on block Email Sendgrid Block
 OK: ---------------------------------------
 OK: Block stopped
 OK: Deluxe!
 OK: ---------------------------------------
 ```
-
-<a name="todo"></a>
-## TODO
-
-- Create event handler through CLI
-- Update event handler and block through CLI
-
