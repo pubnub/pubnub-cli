@@ -25,7 +25,7 @@ cli.parse({
     account: ['a', 'Account ID', 'int'],
     password: ['p', 'Password', 'string']
 },
-['login', 'logout', 'start', 'stop', 'init', 'push', 'pull', 'watch', 'log']);
+['login', 'logout', 'start', 'stop', 'init', 'push', 'pull', 'watch', 'log', 'test']);
 
 // sets all file operations relative to the current directory
 var workingDir = String(pwd());
@@ -1441,6 +1441,12 @@ cli.main(function (args, options) {
             'eventHandlerLog'],
             success: 'Block Logging'
         },
+        test: {
+            functions: ['sessionFileGet', 'sessionGet', 'blockRead',
+                'accountGet', 'keyGet', 'blockGet', 'blockComplete',
+                'eventHandlerComplete', 'unitTestEventHandler']
+            success: 'Tests Pass!'
+        }
     };
 
     // this is the magic function that creates a function queue

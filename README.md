@@ -60,6 +60,7 @@ Commands:
 - **Start** - Start the remote PubNub Function
 - **Stop** - Stop the remote PubNub Funciton
 - **Watch** - Watch the local directory and push event handlers when changes are detected
+- **Test** - Run event handler unit tests
 
 <a name="login"></a>
 ## Login
