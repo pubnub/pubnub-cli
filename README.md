@@ -33,7 +33,7 @@ Options:
   -h, --help             Display help and usage details
 
 Commands:
-  init, log, login, logout, pull, push, start, stop, watch
+  init, log, login, logout, pull, push, start, stop, watch, test
 ```
 
 - **Init** - Download the remote PubNub function and event handlers locally
@@ -274,6 +274,36 @@ OK: Working as ian@meetjennings.com
 OK: Working on block Email Sendgrid Block
 OK: ---------------------------------------
 OK: Block stopped
+OK: Deluxe!
+OK: ---------------------------------------
+```
+
+## Test
+
+Runs unit tests for the event handlers with `pubnub-functions-mock` package in the local environment.
+
+```zsh
+pubnub-cli test
+```
+
+Output
+
+```zsh
+OK: Working with prod environment at https://admin.pubnub.com
+OK: Working on block CICD Example
+
+  #eventhandler
+    ✓ creates event handler of type Function
+
+  1 passing (9ms)
+
+  #endpoint
+    ✓ creates endpoint event handler of type Function
+
+  1 passing (9ms)
+
+OK: ---------------------------------------
+OK: Unit tests completed.
 OK: Deluxe!
 OK: ---------------------------------------
 ```
