@@ -1,20 +1,5 @@
 # BLOCKS CLI
 
-<!-- MarkdownTOC -->
-
-- Install
-- Help
-- Usage
-- Login
-- Init
-- Pull
-- Push
-- Start
-- Stop
-
-<!-- /MarkdownTOC -->
-
-
 <a name="install"></a>
 ## Install
 
