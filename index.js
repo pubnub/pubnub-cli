@@ -118,6 +118,7 @@ cli.main(function (args, options) {
         input.channels = data.channels || input.channels;
         input.file = input.file || data.file; // local attribute wins
         input.output = data.output || input.output;
+        input.path = data.path || input.path;
 
         return input;
 
@@ -140,8 +141,11 @@ cli.main(function (args, options) {
                 type: 'list',
                 default: eventHandler.event,
                 choices: ['js-after-publish', 'js-before-publish',
-                    'js-after-presence']
-            },
+                    'js-after-presence', 'js-on-rest']
+            }
+        };
+
+        var p = {
             channels: {
                 name: 'channels',
                 message: 'PubNub Channels:',
@@ -155,6 +159,21 @@ cli.main(function (args, options) {
                 default: eventHandler.output
             }
         };
+
+        var q = {
+            path: {
+                name: 'path',
+                message: 'Path',
+                type: 'input',
+                default: eventHandler.path
+            }
+        }
+
+        if(eventHandler.event === 'js-on-rest') {
+            Object.assign(o, q);
+        } else {
+            Object.assign(o, p);
+        }
 
         // if we're missing this property
         // add interactive question to an array
@@ -450,6 +469,7 @@ cli.main(function (args, options) {
 
                 // token expired, need to login again
                 cli.error('Session has expired, please login.');
+                cli.info('Email ' + self.session.user.email);
 
                 // supply email, prompt password
                 inquirer.prompt([userQuestions.password])
@@ -977,14 +997,11 @@ cli.main(function (args, options) {
                 // try to find event handler with same id
                 var noIds = []; // count the number of eh with no id
 
-                var found = false;
-
                 self.blockLocal.event_handlers.forEach(function (value) {
 
                     // if ids match
                     // overwrite local with what we have on server
                     if (eh.id === value._id) {
-                        found = true;
                         value = mergeEventHandler(value, eh);
                     }
 
@@ -1010,74 +1027,69 @@ cli.main(function (args, options) {
 
                 };
 
-                // if server event handler exists and no match found
-                if (!found) {
+                // if all the existing eh in the file have ids
+                if (!noIds.length) {
 
-                    // if all the existing eh in the file have ids
-                    if (!noIds.length) {
+                    // write the file and push
+                    appendEH();
 
-                        // write the file and push
-                        appendEH();
+                } else {
 
-                    } else {
+                    cli.error('There is a remote event handler'
+                        + 'that does not have a local link.');
+                    cli.error('Does this (server) event handler'
+                        + 'match a (local) event handler?');
 
-                        cli.error('There is a remote event handler'
-                            + 'that does not have a local link.');
-                        cli.error('Does this (server) event handler'
-                            + 'match a (local) event handler?');
+                    cli.info('Event Handler Name: ' + eh.name);
+                    cli.info('Event Handler Description: '
+                        + eh.description);
 
-                        cli.info('Event Handler Name: ' + eh.name);
-                        cli.info('Event Handler Description: '
-                            + eh.description);
+                    var choices = [];
 
-                        var choices = [];
+                    choices.push(new inquirer.Separator('--- Select'));
 
-                        choices.push(new inquirer.Separator('--- Select'));
+                    var i = 0;
+                    self.blockLocal.event_handlers.forEach(
+                        function (value) {
 
-                        var i = 0;
-                        self.blockLocal.event_handlers.forEach(
-                            function (value) {
+                            choices.push({
+                                name: value.name,
+                                value: {
+                                    index: i,
+                                    value: value
+                                }
+                            });
+                            i++;
 
-                                choices.push({
-                                    name: value.name,
-                                    value: {
-                                        index: i,
-                                        value: value
-                                    }
-                                });
-                                i++;
+                        }
+                    );
 
-                            }
-                        );
+                    choices.push(new inquirer.Separator('--- Create'));
 
-                        choices.push(new inquirer.Separator('--- Create'));
+                    choices.push({
+                        name: 'Create a new event handler',
+                        value: false
+                    });
 
-                        choices.push({
-                            name: 'Create a new event handler',
-                            value: false
-                        });
+                    cli.info('prompt');
 
-                        cli.info('prompt');
+                    inquirer.prompt([{
+                        type: 'list',
+                        name: 'eh',
+                        message: 'Which event handler is this?',
+                        choices: choices
+                    }]).then(function (answers) {
 
-                        inquirer.prompt([{
-                            type: 'list',
-                            name: 'eh',
-                            message: 'Which event handler is this?',
-                            choices: choices
-                        }]).then(function (answers) {
+                        if (!answers.eh) {
+                            appendEH();
+                        } else {
+                            mergeEventHandler(
+                                self.blockLocal.event_handlers[
+                                    answers.eh.index], eh);
+                            holla(null);
+                        }
 
-                            if (!answers.eh) {
-                                appendEH();
-                            } else {
-                                mergeEventHandler(
-                                    self.blockLocal.event_handlers[
-                                        answers.eh.index], eh);
-                                holla(null);
-                            }
-
-                        });
-
-                    }
+                    });
 
                 }
 
