@@ -11,6 +11,8 @@ var slug = require('slug'); // strips characters for friendly file names
 var envs = require('./envs'); // location of block environment configs
 var watch = require('node-watch'); // watch local files, upload, deploy
 var debounce = require('debounce');
+var onreqTestStub = require('./lib/test-stubs/on-request-test-stub.js');
+var otherTestStub = require('./lib/test-stubs/other-eh-test-stub.js');
 
 require('shelljs/global'); // ability to run shell commands
 
@@ -1140,14 +1142,10 @@ cli.main(function (args, options) {
                 var fullPath = workingDir + options.file + eh.file;
                 self.blockLocal.event_handlers[index].test = eh.file;
 
-                function getFileContents(path) {
+                function getFileContents(data) {
                     return new Promise((resolve, reject) => {
-                        fs.readFile(path, 'utf8', function(err, data) {
-                            if (err) reject(err);
-                            // add EH path to the unit test file
-                            data = data.replace(/__eventhandlerpath__/g, `${eh.event}/${slug(eh.name)}.js`);
-                            resolve(data);
-                        });
+                        data = data.replace(/__eventhandlerpath__/g, `${eh.event}/${slug(eh.name)}.js`);
+                        resolve(data);
                     });
                 }
 
@@ -1159,15 +1157,13 @@ cli.main(function (args, options) {
                 }
 
                 if (!fs.existsSync(fullPath)) {
-                    let stubPath = require('path').dirname(require.main.filename);
+                    let stubCode = otherTestStub;
 
                     if (eh.event === 'js-on-rest') {
-                        stubPath += '/lib/test-stubs/on-request-test-stub.js';
-                    } else {
-                        stubPath += '/lib/test-stubs/other-eh-test-stub.js';
+                        stubCode += onreqTestStub;
                     }
 
-                    getFileContents(stubPath).then(writeToFile);
+                    getFileContents(stubCode).then(writeToFile);
                 }
 
             }, function () {
