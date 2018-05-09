@@ -1,0 +1,15 @@
+{
+    "_key_id": 220339,
+    "_id": 24576,
+    "name": "Amazon Polly",
+    "description": "Turn text into lifelike speech using deep learning",
+    "event_handlers": [
+        {
+            "_id": 25554,
+            "name": "Amazon Polly Function",
+            "event": "js-on-rest",
+            "file": "js-on-rest/Amazon-Polly-Function.js",
+            "output": "blocks-output-Vc4vQRNNq1SwcgkgJ1pW.18006132535173247"
+        }
+    ]
+}
