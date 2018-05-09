@@ -1160,7 +1160,7 @@ cli.main(function (args, options) {
                     let stubCode = otherTestStub;
 
                     if (eh.event === 'js-on-rest') {
-                        stubCode += onreqTestStub;
+                        stubCode = onreqTestStub;
                     }
 
                     getFileContents(stubCode).then(writeToFile);
