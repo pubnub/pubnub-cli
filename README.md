@@ -1,18 +1,17 @@
-# TEST
-
 # BLOCKS CLI
 
 <!-- MarkdownTOC -->
 
-- [Install](#install)
-- [Help](#help)
-- [Usage](#usage)
-- [Login](#login)
-- [Init](#init)
-- [Pull](#pull)
-- [Push](#push)
-- [Start](#start)
-- [TODO](#todo)
+- Install
+- Help
+- Usage
+- Login
+- Init
+- Pull
+- Push
+- Start
+- Stop
+- TODO
 
 <!-- /MarkdownTOC -->
 
@@ -99,7 +98,7 @@ This file is used for every request thereafter.
 <a name="init"></a>
 ## Init
 
-Writes a ```block.json``` file. Use selects key and block (or creates a new block). Block information is pulled from server and persisted into file. 
+Writes a ```block.json``` file. Use selects key and block (or creates a new block). Block information is pulled from server and persisted into file.
 
 Note the ```-f``` specifies the directory of the future ```block.json``` file. See "Pull" below for more info on ```block.json```.
 
