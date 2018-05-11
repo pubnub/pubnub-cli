@@ -43,7 +43,7 @@ Commands:
 - **Pull** - Download remote event handlers and overwrite file
 - **Push** - Upload remote event handlers and overwrite
 - **Start** - Start the remote PubNub Function
-- **Stop** - Stop the remote PubNub Funciton
+- **Stop** - Stop the remote PubNub Function
 - **Watch** - Watch the local directory and push event handlers when changes are detected
 - **Test** - Run event handler unit tests
 
