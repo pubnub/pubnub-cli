@@ -50,7 +50,8 @@ var workingDir = String(pwd());
 
 // cli function to parse arguments and options
 cli.main(function (args, options) {
-    options.file = options.file || '/';
+    const path = require('path');
+    options.file = options.file || path.sep;
 
     // an array of functions to run through in series
     // search for the string 'routes' in your IDE for more info
@@ -60,7 +61,7 @@ cli.main(function (args, options) {
     var blockFile = workingDir + options.file + 'block.json';
 
     // token and user info stored in home directory as this file
-    var sessionFile = os.homedir() + '/.pubnub-cli';
+    var sessionFile = os.homedir() + path.sep + '.pubnub-cli';
 
     if (options.insert) {
         cli.info('Warning! Insert option provided.');
