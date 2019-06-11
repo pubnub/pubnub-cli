@@ -1,4 +1,6 @@
 extends: airbnb-base/legacy
+parserOptions:
+    ecmaVersion: 6
 plugins:
   - mocha
 globals:
