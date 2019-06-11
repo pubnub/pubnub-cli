@@ -34,6 +34,7 @@ cli.parse({
 [
     'login',
     'logout',
+    'restart',
     'start',
     'stop',
     'init',
@@ -897,6 +898,15 @@ cli.main(function (args, options) {
         );
     };
 
+    // restart effectively is a stop and a start
+    self.blockRestart = function (cb) {
+        cli.debug('blockRestart');
+
+        self.blockStop(function () {
+            self.blockStart(cb);
+        });
+    };
+
     // get event handler from server and set as self.eventHandler
     self.eventHandlerGet = function (cb) {
         cli.debug('eventHandler');
@@ -1369,6 +1379,15 @@ cli.main(function (args, options) {
                 'eventHandlerWriteTest'
             ],
             success: 'Local block.json updated with remote data.'
+        },
+        restart: {
+            functions: [
+                'sessionFileGet',
+                'sessionGet',
+                'blockRead',
+                'blockRestart'
+            ],
+            success: 'Block restarted'
         },
         start: {
             functions: [
